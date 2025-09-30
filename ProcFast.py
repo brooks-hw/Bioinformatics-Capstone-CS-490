@@ -4,6 +4,8 @@ import subprocess
 import os
 import shutil
 import base64
+from io import BytesIO
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -34,22 +36,35 @@ def extract_and_copy_images(report_path, static_dir="static/report_images"):
 
     image_paths = []
     counter = 1
+
     for img in main_div.find_all("img"):
         src = img.get("src")
-        if src and src.startswith("data:image/png;base64,"):
-            base64_data = src.split(",")[1]
-            img_data = base64.b64decode(base64_data)
+        if not src or not src.startswith("data:image/png;base64,"):
+            continue
 
-            filename = f"report_image_{counter}.png"
-            out_path = os.path.join(static_dir, filename)
-            with open(out_path, "wb") as out:
-                out.write(img_data)
+        # Decode base64
+        base64_data = src.split(",")[1]
+        img_data = base64.b64decode(base64_data)
 
-            image_paths.append(f"/static/report_images/{filename}")
-            counter += 1
+        # Check size using Pillow
+        try:
+            with Image.open(BytesIO(img_data)) as im:
+                width, height = im.size
+                # Skip small icons (e.g. <100px width or <100px height)
+                if width < 100 or height < 100:
+                    continue
+
+                # Save only larger "chart" images
+                filename = f"report_image_{counter}.png"
+                out_path = os.path.join(static_dir, filename)
+                im.save(out_path, format="PNG")
+
+                image_paths.append(f"/static/report_images/{filename}")
+                counter += 1
+        except Exception as e:
+            print(f"Skipping image due to error: {e}")
 
     return image_paths
-
 
 # ----------------
 # Main page ^_^
@@ -63,7 +78,7 @@ def run_fastqc():
     file = request.files['dnaFile']
     filepath = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(filepath)
-
+    print("filepath="+filepath)
     try:
         subprocess.run(['fastqc', filepath, '-o', OUTPUT_FOLDER], check=True)
         report_html = os.path.join(OUTPUT_FOLDER, 'example_fastqc.html')

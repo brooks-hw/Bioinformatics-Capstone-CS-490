@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>DNA Workflow Pipeline</title>
   <style>
     body {
@@ -41,43 +41,122 @@
     .module button:hover {
       background-color: #004d40;
     }
-    #output {
-      white-space: pre-wrap;
-      background: #e0f2f1;
-      padding: 20px;
-      border-radius: 8px;
-      margin-top: 20px;
-      text-align: left;
+
+    /* Slideshow */
+    .slideshow-container {
+      position: relative;
+      max-width: 700px;
+      margin: auto;
     }
-    .images {
-      margin-top: 30px;
+    .slide {
+      display: none;
     }
-    .images img {
-      max-width: 90%;
-      margin-bottom: 20px;
-      border: 1px solid #ccc;
-      padding: 5px;
+    .slide img {
+      width: 100%;
       border-radius: 6px;
-      background: white;
+      cursor: pointer;
+    }
+
+    /* Navigation arrows */
+    .prev, .next {
+      cursor: pointer;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 16px;
+      color: white;
+      font-weight: bold;
+      font-size: 20px;
+      background: rgba(0,0,0,0.4);
+      user-select: none;
+      border-radius: 3px;
+    }
+    .prev { left: 0; }
+    .next { right: 0; }
+    .prev:hover, .next:hover {
+      background-color: rgba(0,0,0,0.8);
+    }
+
+    /* Dots */
+    .dots {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .dot {
+      cursor: pointer;
+      height: 12px;
+      width: 12px;
+      margin: 0 4px;
+      background-color: #bbb;
+      border-radius: 50%;
+      display: inline-block;
+      transition: background-color 0.3s ease;
+    }
+    .dot.active, .dot:hover {
+      background-color: #717171;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      padding-top: 60px;
+      background: rgba(0,0,0,0.8);
+    }
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: 8px;
+    }
+    .modal-caption {
+      margin: 20px auto;
+      text-align: center;
+      color: #f1f1f1;
+      font-size: 18px;
+    }
+    .close {
+      position: absolute;
+      top: 20px;
+      right: 40px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover {
+      color: #bbb;
     }
   </style>
 </head>
 <body>
-
   <h1>DNA Segment Analysis Workflow</h1>
 
   <div class="module">
     <h3>1. Upload DNA Data</h3>
     <form action="/run-fastqc" method="post" enctype="multipart/form-data">
-      <input type="file" name="dnaFile" accept=".fastq,.gz" required>
-      <br>
+      <input type="file" name="dnaFile" accept=".fastq,.gz" required />
+      <br />
       <button type="submit">Upload & Run FastQC</button>
     </form>
 
     {% if images %}
-      <div class="images">
+      <div class="slideshow-container">
         {% for img in images %}
-          <img src="{{ img }}" alt="FastQC report image">
+          <div class="slide">
+            <img src="{{ img }}" alt="FastQC report image" onclick="openModal(this)" />
+          </div>
+        {% endfor %}
+        <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+        <a class="next" onclick="plusSlides(1)">&#10095;</a>
+      </div>
+
+      <div class="dots">
+        {% for img in images %}
+          <span class="dot" onclick="currentSlide('{{ loop.index }}')"></span>
         {% endfor %}
       </div>
     {% else %}
@@ -87,5 +166,61 @@
     {% endif %}
   </div>
 
+  <!-- Modal -->
+  <div id="imgModal" class="modal">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="modalImage" />
+    <div id="modalCaption" class="modal-caption"></div>
+  </div>
+
+  <script>
+    let slideIndex = 1;
+    document.addEventListener("DOMContentLoaded", () => {
+      showSlides(slideIndex);
+    });
+
+    function plusSlides(n) {
+      showSlides(slideIndex += n);
+    }
+
+    function currentSlide(n) {
+      showSlides(slideIndex = n);
+    }
+
+    function showSlides(n) {
+      const slides = document.getElementsByClassName("slide");
+      const dots = document.getElementsByClassName("dot");
+      if (slides.length === 0) return;
+
+      if (n > slides.length) slideIndex = 1;
+      if (n < 1) slideIndex = slides.length;
+
+      for (let i = 0; i < slides.length; i++) {
+        slides[i].style.display = "none";
+      }
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].className = dots[i].className.replace(" active", "");
+      }
+
+      slides[slideIndex - 1].style.display = "block";
+      if (dots.length) {
+        dots[slideIndex - 1].className += " active";
+      }
+    }
+
+    // Modal logic
+    function openModal(imgElement) {
+      const modal = document.getElementById("imgModal");
+      const modalImg = document.getElementById("modalImage");
+      const captionText = document.getElementById("modalCaption");
+      modal.style.display = "block";
+      modalImg.src = imgElement.src;
+      captionText.textContent = imgElement.alt || "";
+    }
+
+    function closeModal() {
+      document.getElementById("imgModal").style.display = "none";
+    }
+  </script>
 </body>
 </html>
