@@ -94,6 +94,40 @@ def run_fastqc():
     except Exception as e:
         return f"Error running FastQC: {str(e)}", 500
 
+@app.route('/run-trimmomatic', methods=['POST'])
+def run_trimmomatic():
+    file = request.files['trimFile']
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(filepath)
+
+    # Create output folder if it doesn't exist
+    TRIM_OUTPUT_FOLDER = 'trimmomatic_output'
+    os.makedirs(TRIM_OUTPUT_FOLDER, exist_ok=True)
+
+    # Define output filename
+    output_file = os.path.join(
+        TRIM_OUTPUT_FOLDER,
+        file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
+    )
+
+    try:
+        # Run Trimmomatic (hardcoded SE mode for MVP)
+        cmd = [
+            "java", "-jar", "/usr/share/java/trimmomatic-0.39.jar",
+            "SE", "-threads", "4", "-phred33",
+            filepath, output_file,
+            "SLIDINGWINDOW:4:20", "MINLEN:50"
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+        # Send summary/log text back to HTML
+        trim_summary = f"Trimmomatic completed successfully.\nOutput: {output_file}\n\nLog:\n{result.stdout}"
+
+        return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
+
+    except subprocess.CalledProcessError as e:
+        return f"Error running Trimmomatic:\n{e.stderr}", 500
+
 #-------------------------
 #Application Launch Point!
 #-------------------------

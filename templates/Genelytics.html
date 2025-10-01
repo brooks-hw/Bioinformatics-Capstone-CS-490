@@ -166,6 +166,24 @@
     {% endif %}
   </div>
 
+  <div class="module">
+  <h3>2. Trim with Trimmomatic</h3>
+  <form action="/run-trimmomatic" method="post" enctype="multipart/form-data">
+    <input type="file" name="trimFile" accept=".fastq,.gz" required />
+    <br />
+    <button type="submit">Upload & Run Trimmomatic</button>
+  </form>
+
+  {% if trim_summary %}
+    <div class="results">
+      <h4>Trimmomatic Results</h4>
+      <pre>{{ trim_summary }}</pre>
+    </div>
+  {% else %}
+    <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
+  {% endif %}
+</div>
+
   <!-- Modal -->
   <div id="imgModal" class="modal">
     <span class="close" onclick="closeModal()">&times;</span>
