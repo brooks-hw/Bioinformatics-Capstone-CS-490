@@ -111,9 +111,12 @@ def run_trimmomatic():
     )
 
     try:
-        # Run Trimmomatic (hardcoded SE mode for MVP)
+        # Path to local Trimmomatic .jar
+        trimmomatic_jar = os.path.join("tools", "trimmomatic-0.39.jar")
+
+        # Run Trimmomatic (SE mode for MVP)
         cmd = [
-            "java", "-jar", "/usr/share/java/trimmomatic-0.39.jar",
+            "java", "-jar", trimmomatic_jar,
             "SE", "-threads", "4", "-phred33",
             filepath, output_file,
             "SLIDINGWINDOW:4:20", "MINLEN:50"
