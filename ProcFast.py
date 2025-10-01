@@ -7,12 +7,15 @@ import base64
 from io import BytesIO
 from PIL import Image
 
+# Create a Flask application instance called 'app'
 app = Flask(__name__)
 
+# Define constants for filepaths 
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'fastqc_output'
 STATIC_IMG_DIR = 'static/report_images'
 
+# Ensure the folders exist, if not create them
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 os.makedirs(STATIC_IMG_DIR, exist_ok=True)
