@@ -10,7 +10,7 @@
    - **Run:** 
 7. Enter the envrionment:
    - **Run:** (Linux) docker run --rm -it -v $PWD:/workspace capstone-pipeline
-              (Windows) docker run --rm -it -v "%cd%":/workspace capstone-pipeline
+     (Windows) docker run --rm -it -v "%cd%":/workspace capstone-pipeline
    - rm: ensures cleanup after exiting
    - it: starts the environment in an interactive shell
    - -v $PWD:/workspace 
