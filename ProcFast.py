@@ -7,22 +7,22 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-# Create a Flask application instance called 'app'
+# -----------------------------------
+# Flask App Initialization
+# -----------------------------------
 app = Flask(__name__)
 
-# Define constants for filepaths 
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'fastqc_output'
 STATIC_IMG_DIR = 'static/report_images'
+TRIM_OUTPUT_FOLDER = 'trimmomatic_output'
 
-# Ensure the folders exist, if not create them
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-os.makedirs(STATIC_IMG_DIR, exist_ok=True)
+for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, STATIC_IMG_DIR, TRIM_OUTPUT_FOLDER]:
+    os.makedirs(folder, exist_ok=True)
 
-# -------------------------------
-# GRABBING IMAGES!
-# -------------------------------
+# -----------------------------------
+# IMAGE EXTRACTION HELPER
+# -----------------------------------
 def extract_and_copy_images(report_path, static_dir="static/report_images"):
     os.makedirs(static_dir, exist_ok=True)
 
@@ -45,19 +45,15 @@ def extract_and_copy_images(report_path, static_dir="static/report_images"):
         if not src or not src.startswith("data:image/png;base64,"):
             continue
 
-        # Decode base64
         base64_data = src.split(",")[1]
         img_data = base64.b64decode(base64_data)
 
-        # Check size using Pillow
         try:
             with Image.open(BytesIO(img_data)) as im:
                 width, height = im.size
-                # Skip small icons (e.g. <100px width or <100px height)
                 if width < 100 or height < 100:
                     continue
 
-                # Save only larger "chart" images
                 filename = f"report_image_{counter}.png"
                 out_path = os.path.join(static_dir, filename)
                 im.save(out_path, format="PNG")
@@ -69,70 +65,117 @@ def extract_and_copy_images(report_path, static_dir="static/report_images"):
 
     return image_paths
 
-# ----------------
-# Main page ^_^
-# ----------------
+# -----------------------------------
+# HOME PAGE
+# -----------------------------------
 @app.route('/')
 def home():
     return render_template("Genelytics.html", images=[])
 
+# -----------------------------------
+# RUN FASTQC 
+# -----------------------------------
 @app.route('/run-fastqc', methods=['POST'])
 def run_fastqc():
-    file = request.files['dnaFile']
-    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(filepath)
-    print("filepath="+filepath)
-    try:
+    files = request.files.getlist('dnaFiles')
+    if not files:
+        return "No files uploaded!", 400
+
+    filepaths = []
+    generated_reports = []
+
+    for file in files:
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
+        filepaths.append(filepath)
+
         subprocess.run(['fastqc', filepath, '-o', OUTPUT_FOLDER], check=True)
-        report_html = os.path.join(OUTPUT_FOLDER, 'example_fastqc.html')
-        if not os.path.exists(report_html):
-            return "FastQC report not found!", 500
 
-        images = extract_and_copy_images(report_html)
-        return render_template("Genelytics.html", images=images)
+        base_name = os.path.basename(filepath)
+        report_name = base_name.replace('.fastq', '_fastqc.html').replace('.gz', '_fastqc.html')
+        report_path = os.path.join(OUTPUT_FOLDER, report_name)
 
-    except Exception as e:
-        return f"Error running FastQC: {str(e)}", 500
+        if os.path.exists(report_path):
+            generated_reports.append(report_name)
 
-@app.route('/run-trimmomatic', methods=['POST'])
-def run_trimmomatic():
-    file = request.files['trimFile']
-    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(filepath)
+    if not generated_reports:
+        return "No FastQC reports found!", 500
 
-    # Create output folder if it doesn't exist
-    TRIM_OUTPUT_FOLDER = 'trimmomatic_output'
-    os.makedirs(TRIM_OUTPUT_FOLDER, exist_ok=True)
+    selected_report = generated_reports[0]
+    images = extract_and_copy_images(os.path.join(OUTPUT_FOLDER, selected_report))
 
-    # Define output filename
-    output_file = os.path.join(
-        TRIM_OUTPUT_FOLDER,
-        file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
+    return render_template(
+        "Genelytics.html",
+        images=images,
+        fastqc_reports=generated_reports,
+        selected_report=selected_report
     )
 
-    try:
-        # Path to local Trimmomatic .jar
-        trimmomatic_jar = os.path.join("tools", "trimmomatic-0.39.jar")
+@app.route('/view-report')
+def view_report():
+    # File selected by user from dropdown
+    report_name = request.args.get('file')
+    report_path = os.path.join(OUTPUT_FOLDER, report_name)
 
-        # Run Trimmomatic (SE mode for MVP)
-        cmd = [
-            "java", "-jar", trimmomatic_jar,
-            "SE", "-threads", "4", "-phred33",
-            filepath, output_file,
-            "SLIDINGWINDOW:4:20", "MINLEN:50"
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    if not os.path.exists(report_path):
+        return f"Report {report_name} not found!", 404
 
-        # Send summary/log text back to HTML
-        trim_summary = f"Trimmomatic completed successfully.\nOutput: {output_file}\n\nLog:\n{result.stdout}"
+    images = extract_and_copy_images(report_path)
 
-        return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
+    # Get all available reports again (for dropdown)
+    all_reports = [f for f in os.listdir(OUTPUT_FOLDER) if f.endswith('_fastqc.html')]
 
-    except subprocess.CalledProcessError as e:
-        return f"Error running Trimmomatic:\n{e.stderr}", 500
+    return render_template(
+        "Genelytics.html",
+        images=images,
+        fastqc_reports=all_reports,
+        selected_report=report_name
+    )
 
-#-------------------------
-#Application Launch Point!
-#-------------------------
+# -----------------------------------
+# RUN TRIMMOMATIC 
+# -----------------------------------
+@app.route('/run-trimmomatic', methods=['POST'])
+def run_trimmomatic():
+    # Get all uploaded files from form input name="trimFiles"
+    files = request.files.getlist('trimFiles')
+    if not files:
+        return "No files uploaded!", 400
+
+    trim_logs = []
+
+    for file in files:
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
+        print(f"Saved file: {filepath}")
+
+        # Define output filename
+        output_file = os.path.join(
+            TRIM_OUTPUT_FOLDER,
+            file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
+        )
+
+        try:
+            trimmomatic_jar = os.path.join("tools", "trimmomatic-0.39.jar")
+
+            cmd = [
+                "java", "-jar", trimmomatic_jar,
+                "SE", "-threads", "4", "-phred33",
+                filepath, output_file,
+                "SLIDINGWINDOW:4:20", "MINLEN:50"
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            trim_logs.append(f" {file.filename} trimmed successfully\n{result.stdout}\n")
+
+        except subprocess.CalledProcessError as e:
+            trim_logs.append(f"Error processing {file.filename}:\n{e.stderr}\n")
+
+    trim_summary = "\n".join(trim_logs)
+    return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
+
+# -----------------------------------
+# APP LAUNCH
+# -----------------------------------
 if __name__ == '__main__':
     app.run(debug=True)

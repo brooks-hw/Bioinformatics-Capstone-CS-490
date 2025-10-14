@@ -6,58 +6,110 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #f0f8ff;
+      background: #f5fbff;
       padding: 40px;
+      color: #333;
     }
+  
     h1 {
       text-align: center;
       color: #00695c;
+      font-size: 2rem;
+      margin-bottom: 40px;
     }
+  
     .module {
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      padding: 30px;
-      margin: 20px auto;
-      max-width: 800px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      padding: 30px 40px;
+      margin: 30px auto;
+      max-width: 900px;
       text-align: center;
+      transition: box-shadow 0.3s ease;
     }
+  
+    .module:hover {
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+  
     .module h3 {
       margin-top: 0;
+      margin-bottom: 20px;
       color: #004d40;
+      font-size: 1.3rem;
+      font-weight: 600;
     }
-    .module input, .module button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
+  
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed #00796b;
+      border-radius: 12px;
+      padding: 35px;
+      background-color: #e0f2f1;
+      color: #004d40;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+      margin-bottom: 25px;
     }
-    .module button {
+  
+    .drop-zone:hover {
+      background-color: #d1efea;
+    }
+  
+    .drop-zone.dragover {
+      background-color: #b2dfdb;
+      border-color: #004d40;
+    }
+  
+    /* Buttons */
+    button {
       background-color: #00796b;
       color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      padding: 12px 25px;
       cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.1s ease;
     }
-    .module button:hover {
-      background-color: #004d40;
+  
+    button:hover {
+      background-color: #005f55;
+      transform: translateY(-1px);
     }
-
-    /* Slideshow */
+  
+    /* Dropdown for reports */
+    select {
+      margin-top: 20px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+      font-size: 1rem;
+      color: #333;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+  
+    select:hover {
+      border-color: #00796b;
+    }
+  
+    /* Slideshow / Report Display */
     .slideshow-container {
       position: relative;
       max-width: 700px;
-      margin: auto;
+      margin: 30px auto;
     }
-    .slide {
-      display: none;
-    }
+  
     .slide img {
       width: 100%;
-      border-radius: 6px;
-      cursor: pointer;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
-
-    /* Navigation arrows */
+  
     .prev, .next {
       cursor: pointer;
       position: absolute;
@@ -69,19 +121,22 @@
       font-size: 20px;
       background: rgba(0,0,0,0.4);
       user-select: none;
-      border-radius: 3px;
+      border-radius: 50%;
     }
-    .prev { left: 0; }
-    .next { right: 0; }
+  
     .prev:hover, .next:hover {
-      background-color: rgba(0,0,0,0.8);
+      background-color: rgba(0,0,0,0.7);
     }
-
-    /* Dots */
+  
+    .prev { left: -50px; }
+    .next { right: -50px; }
+  
+    /* Dots for slideshow navigation */
     .dots {
       text-align: center;
-      margin-top: 10px;
+      margin-top: 15px;
     }
+  
     .dot {
       cursor: pointer;
       height: 12px;
@@ -92,32 +147,37 @@
       display: inline-block;
       transition: background-color 0.3s ease;
     }
+  
     .dot.active, .dot:hover {
-      background-color: #717171;
+      background-color: #00796b;
     }
-
-    /* Modal */
+  
+    /* Modal image */
     .modal {
       display: none;
       position: fixed;
       z-index: 1000;
       inset: 0;
       padding-top: 60px;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.85);
     }
+  
     .modal-content {
       margin: auto;
       display: block;
       max-width: 90%;
       max-height: 80vh;
-      border-radius: 8px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
     }
+  
     .modal-caption {
       margin: 20px auto;
       text-align: center;
       color: #f1f1f1;
       font-size: 18px;
     }
+  
     .close {
       position: absolute;
       top: 20px;
@@ -127,10 +187,12 @@
       font-weight: bold;
       cursor: pointer;
     }
+  
     .close:hover {
       color: #bbb;
     }
   </style>
+  
 </head>
 <body>
   <h1>DNA Segment Analysis Workflow</h1>
@@ -138,10 +200,26 @@
   <div class="module">
     <h3>1. Upload DNA Data</h3>
     <form action="/run-fastqc" method="post" enctype="multipart/form-data">
-      <input type="file" name="dnaFile" accept=".fastq,.gz" required />
+      <div class="drop-zone" id="fastqcDropZone">
+        <p>Drag & drop your FASTQ files here, or click to select</p>
+        <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple required hidden>
+      </div>
       <br />
-      <button type="submit">Upload & Run FastQC</button>
+      <button type="submit">Upload & Run FastQC</button>      
     </form>
+    {% if fastqc_reports %}
+  <h4>View FastQC Reports</h4>
+  <form action="/view-report" method="get">
+    <select name="file" onchange="this.form.submit()">
+      {% for report in fastqc_reports %}
+        <option value="{{ report }}" {% if report == selected_report %}selected{% endif %}>
+          {{ report }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+{% endif %}
+
 
     {% if images %}
       <div class="slideshow-container">
@@ -169,7 +247,10 @@
   <div class="module">
   <h3>2. Trim with Trimmomatic</h3>
   <form action="/run-trimmomatic" method="post" enctype="multipart/form-data">
-    <input type="file" name="trimFile" accept=".fastq,.gz" required />
+    <div class="drop-zone" id="trimDropZone">
+      <p>Drag & drop your files here, or click to select</p>
+      <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
+    </div>
     <br />
     <button type="submit">Upload & Run Trimmomatic</button>
   </form>
@@ -239,6 +320,38 @@
     function closeModal() {
       document.getElementById("imgModal").style.display = "none";
     }
+
+    function setupDropZone(dropZoneId, inputId) {
+  const dropZone = document.getElementById(dropZoneId);
+  const fileInput = document.getElementById(inputId);
+
+  dropZone.addEventListener("click", () => fileInput.click());
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    fileInput.files = e.dataTransfer.files;
+
+    let names = Array.from(fileInput.files).map(f => f.name).join(", ");
+    dropZone.querySelector("p").textContent = `Selected: ${names}`;
+  });
+
+  fileInput.addEventListener("change", () => {
+    let names = Array.from(fileInput.files).map(f => f.name).join(", ");
+    dropZone.querySelector("p").textContent = `Selected: ${names}`;
+  });
+}
+
+// initialize both
+document.addEventListener("DOMContentLoaded", () => {
+  setupDropZone("fastqcDropZone", "dnaFiles");
+  setupDropZone("trimDropZone", "trimFiles");
+});
+
   </script>
 </body>
 </html>
