@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y \
     unzip \
     perl \
     build-essential \
+    samtools \
+    jellyfish \
+    bowtie2 \
+    salmon \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python and pip
