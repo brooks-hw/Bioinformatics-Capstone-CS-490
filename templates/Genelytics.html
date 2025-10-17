@@ -151,6 +151,44 @@
     .dot.active, .dot:hover {
       background-color: #00796b;
     }
+
+    /*side bar*/
+    .sidebar { 
+            width: 200px; 
+            background-color: #2c3e50; 
+            color: white; 
+            height: 100vh; 
+            padding-top: 20px; 
+            position: fixed; 
+        } 
+    .sidebar a { 
+            display: block; 
+            color: white; 
+            padding: 10px; 
+            text-decoration: none; 
+        } 
+    .sidebar a:hover { 
+            background-color: #34495e; 
+        }
+    .content { 
+            margin-left: 200px; 
+            padding: 20px; 
+            flex-grow: 1; 
+        } 
+    .tool-section { 
+            display: none; 
+        } 
+    .tool-section.active { 
+            display: block; 
+        } 
+    
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+
   
     /* Modal image */
     .modal {
@@ -192,12 +230,22 @@
       color: #bbb;
     }
   </style>
-  
 </head>
-<body>
-  <h1>DNA Segment Analysis Workflow</h1>
 
-  <div class="module">
+
+<body>
+  <h2>Data Analysis Pipeline</h2>
+  <!--sidebar menu-->
+   <div class="sidebar">
+    <a href="#" onclick="showPage('fastqc')">FastQC</a>
+    <a href="#" onclick="showPage('trimmomatic')">Trimmomatic</a>
+    <a href="#" onclick="showPage('trinity')">Trinity</a>
+  </div>
+
+  
+  <div class="content">
+  <!--fastqc-->
+    <div id="fastqc" class="page active">
     <h3>1. Upload DNA Data</h3>
     <form action="/run-fastqc" method="post" enctype="multipart/form-data">
       <div class="drop-zone" id="fastqcDropZone">
@@ -244,7 +292,9 @@
     {% endif %}
   </div>
 
-  <div class="module">
+
+<!--trimmomatic-->
+  <div id="trimmomatic" class="page">
   <h3>2. Trim with Trimmomatic</h3>
   <form action="/run-trimmomatic" method="post" enctype="multipart/form-data">
     <div class="drop-zone" id="trimDropZone">
@@ -265,7 +315,8 @@
   {% endif %}
 </div>
 
-  <div class="module">
+<!--trinity-->
+  <div id="trinity" class="page">
     <h3>3. Transcriptome Assembly (Trinity)</h3>
     <form action="/run-trinity" method="post" enctype="multipart/form-data">
       <div class="drop-zone" id="trinityDropZone">
@@ -284,6 +335,7 @@
     {% else %}
       <p>No Trinity assembly has been run yet. Upload files to start assembly.</p>
     {% endif %}
+  </div>
   </div>
 
   <!-- Modal -->
@@ -305,6 +357,15 @@
 
     function currentSlide(n) {
       showSlides(slideIndex = n);
+    }
+
+    function showPage(pageId) {
+      const pages = document.querySelectorAll('.page');
+      pages.forEach(page => page.classList.remove('active'));
+      const activePage = document.getElementById(pageId);
+      if (activePage) {
+        activePage.classList.add('active');
+      }
     }
 
     function showSlides(n) {
@@ -376,3 +437,4 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
