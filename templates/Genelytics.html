@@ -6,42 +6,98 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #f5fbff;
-      padding: 40px;
+      background: #f7fbfd;
       color: #333;
+      margin: 0;
+      display: flex;
     }
-  
-    h1 {
+
+    /* Sidebar */
+    .sidebar {
+      width: 210px;
+      background-color: #00695c;
+      color: white;
+      height: 100vh;
+      padding-top: 30px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .sidebar h2 {
+      margin-bottom: 30px;
+      font-size: 1.3rem;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar a {
+      display: block;
+      width: 80%;
       text-align: center;
-      color: #00695c;
-      font-size: 2rem;
+      color: white;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #004d40;
+    }
+
+    /* Content */
+    .content {
+      margin-left: 230px;
+      padding: 40px 60px;
+      width: calc(100% - 230px);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      color: #004d40;
       margin-bottom: 40px;
     }
-  
+
+    h3 {
+      color: #00695c;
+      font-size: 1.4rem;
+      margin-bottom: 25px;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .module {
       background: #ffffff;
       border-radius: 16px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-      padding: 30px 40px;
-      margin: 30px auto;
-      max-width: 900px;
-      text-align: center;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      padding: 35px;
+      max-width: 850px;
+      margin: 0 auto 50px;
       transition: box-shadow 0.3s ease;
     }
-  
+
     .module:hover {
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
     }
-  
-    .module h3 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      color: #004d40;
-      font-size: 1.3rem;
-      font-weight: 600;
-    }
-  
-    /* Drop Zone */
+
     .drop-zone {
       border: 2px dashed #00796b;
       border-radius: 12px;
@@ -50,66 +106,60 @@
       color: #004d40;
       font-size: 1rem;
       cursor: pointer;
-      transition: background-color 0.3s ease, border-color 0.3s ease;
+      transition: background-color 0.3s ease;
       margin-bottom: 25px;
     }
-  
+
     .drop-zone:hover {
       background-color: #d1efea;
     }
-  
-    .drop-zone.dragover {
-      background-color: #b2dfdb;
-      border-color: #004d40;
-    }
-  
-    /* Buttons */
+
     button {
       background-color: #00796b;
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 1rem;
-      padding: 12px 25px;
+      padding: 12px 28px;
       cursor: pointer;
+      margin-top: 10px;
       transition: background-color 0.3s ease, transform 0.1s ease;
     }
-  
+
     button:hover {
       background-color: #005f55;
       transform: translateY(-1px);
     }
-  
-    /* Dropdown for reports */
+
     select {
-      margin-top: 20px;
+      margin-top: 15px;
       padding: 10px 14px;
       border-radius: 8px;
       border: 1px solid #ccc;
       background-color: #f9f9f9;
       font-size: 1rem;
       color: #333;
-      cursor: pointer;
       transition: border-color 0.2s ease;
     }
-  
+
     select:hover {
       border-color: #00796b;
     }
-  
-    /* Slideshow / Report Display */
+
+    /* Slideshow */
     .slideshow-container {
       position: relative;
       max-width: 700px;
       margin: 30px auto;
     }
-  
+
     .slide img {
       width: 100%;
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
     }
-  
+
     .prev, .next {
       cursor: pointer;
       position: absolute;
@@ -120,23 +170,22 @@
       font-weight: bold;
       font-size: 20px;
       background: rgba(0,0,0,0.4);
-      user-select: none;
       border-radius: 50%;
+      transition: background 0.3s;
     }
-  
+
     .prev:hover, .next:hover {
       background-color: rgba(0,0,0,0.7);
     }
-  
+
     .prev { left: -50px; }
     .next { right: -50px; }
-  
-    /* Dots for slideshow navigation */
+
     .dots {
       text-align: center;
       margin-top: 15px;
     }
-  
+
     .dot {
       cursor: pointer;
       height: 12px;
@@ -147,59 +196,21 @@
       display: inline-block;
       transition: background-color 0.3s ease;
     }
-  
+
     .dot.active, .dot:hover {
       background-color: #00796b;
     }
 
-    /*side bar*/
-    .sidebar { 
-            width: 200px; 
-            background-color: #2c3e50; 
-            color: white; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
-        } 
-    .sidebar a { 
-            display: block; 
-            color: white; 
-            padding: 10px; 
-            text-decoration: none; 
-        } 
-    .sidebar a:hover { 
-            background-color: #34495e; 
-        }
-    .content { 
-            margin-left: 200px; 
-            padding: 20px; 
-            flex-grow: 1; 
-        } 
-    .tool-section { 
-            display: none; 
-        } 
-    .tool-section.active { 
-            display: block; 
-        } 
-    
-    .page {
-      display: none;
-    }
-    .page.active {
-      display: block;
-    }
-
-  
-    /* Modal image */
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
-      z-index: 1000;
       inset: 0;
-      padding-top: 60px;
       background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      padding-top: 60px;
     }
-  
+
     .modal-content {
       margin: auto;
       display: block;
@@ -208,134 +219,126 @@
       border-radius: 12px;
       box-shadow: 0 0 15px rgba(0,0,0,0.3);
     }
-  
+
     .modal-caption {
-      margin: 20px auto;
       text-align: center;
       color: #f1f1f1;
       font-size: 18px;
+      margin-top: 20px;
     }
-  
+
     .close {
       position: absolute;
       top: 20px;
       right: 40px;
       color: #fff;
       font-size: 40px;
-      font-weight: bold;
       cursor: pointer;
     }
-  
+
     .close:hover {
       color: #bbb;
     }
+
   </style>
 </head>
 
-
 <body>
-  <h2>Data Analysis Pipeline</h2>
-  <!--sidebar menu-->
-   <div class="sidebar">
-    <a href="#" onclick="showPage('fastqc')">FastQC</a>
-    <a href="#" onclick="showPage('trimmomatic')">Trimmomatic</a>
-    <a href="#" onclick="showPage('trinity')">Trinity</a>
+  <div class="sidebar">
+    <h2>DNA Tools</h2>
+    <a href="#" class="active" onclick="showPage('fastqc', this)">FastQC</a>
+    <a href="#" onclick="showPage('trimmomatic', this)">Trimmomatic</a>
+    <a href="#" onclick="showPage('trinity', this)">Trinity</a>
   </div>
 
-  
   <div class="content">
-  <!--fastqc-->
-    <div id="fastqc" class="page active">
-    <h3>1. Upload DNA Data</h3>
-    <form action="/run-fastqc" method="post" enctype="multipart/form-data">
-      <div class="drop-zone" id="fastqcDropZone">
-        <p>Drag & drop your FASTQ files here, or click to select</p>
-        <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple required hidden>
-      </div>
-      <br />
-      <button type="submit">Upload & Run FastQC</button>      
-    </form>
-    {% if fastqc_reports %}
-  <h4>View FastQC Reports</h4>
-  <form action="/view-report" method="get">
-    <select name="file" onchange="this.form.submit()">
-      {% for report in fastqc_reports %}
-        <option value="{{ report }}" {% if report == selected_report %}selected{% endif %}>
-          {{ report }}
-        </option>
-      {% endfor %}
-    </select>
-  </form>
-{% endif %}
+    <h1>Data Analysis Pipeline</h1>
 
+    <!-- FastQC -->
+    <div id="fastqc" class="page active module">
+      <h3>1. Upload DNA Data (FastQC)</h3>
+      <form action="/run-fastqc" method="post" enctype="multipart/form-data">
+        <div class="drop-zone" id="fastqcDropZone">
+          <p>Drag & drop your FASTQ files here, or click to select</p>
+          <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple required hidden>
+        </div>
+        <button type="submit">Upload & Run FastQC</button>
+      </form>
 
-    {% if images %}
-      <div class="slideshow-container">
-        {% for img in images %}
-          <div class="slide">
-            <img src="{{ img }}" alt="FastQC report image" onclick="openModal(this)" />
-          </div>
-        {% endfor %}
-        <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
-        <a class="next" onclick="plusSlides(1)">&#10095;</a>
-      </div>
+      {% if fastqc_reports %}
+        <h4>View FastQC Reports</h4>
+        <form action="/view-report" method="get">
+          <select name="file" onchange="this.form.submit()">
+            {% for report in fastqc_reports %}
+              <option value="{{ report }}" {% if report == selected_report %}selected{% endif %}>
+                {{ report }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      {% endif %}
 
-      <div class="dots">
-        {% for img in images %}
-          <span class="dot" onclick="currentSlide('{{ loop.index }}')"></span>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="images">
+      {% if images %}
+        <div class="slideshow-container">
+          {% for img in images %}
+            <div class="slide">
+              <img src="{{ img }}" alt="FastQC report image" onclick="openModal(this)" />
+            </div>
+          {% endfor %}
+          <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+          <a class="next" onclick="plusSlides(1)">&#10095;</a>
+        </div>
+        <div class="dots">
+          {% for img in images %}
+            <span class="dot" onclick="currentSlide('{{ loop.index }}')"></span>
+          {% endfor %}
+        </div>
+      {% else %}
         <p>No images yet. Upload a file to run FastQC.</p>
-      </div>
-    {% endif %}
-  </div>
-
-
-<!--trimmomatic-->
-  <div id="trimmomatic" class="page">
-  <h3>2. Trim with Trimmomatic</h3>
-  <form action="/run-trimmomatic" method="post" enctype="multipart/form-data">
-    <div class="drop-zone" id="trimDropZone">
-      <p>Drag & drop your files here, or click to select</p>
-      <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
+      {% endif %}
     </div>
-    <br />
-    <button type="submit">Upload & Run Trimmomatic</button>
-  </form>
 
-  {% if trim_summary %}
-    <div class="results">
-      <h4>Trimmomatic Results</h4>
-      <pre>{{ trim_summary }}</pre>
+    <!-- Trimmomatic -->
+    <div id="trimmomatic" class="page module">
+      <h3>2. Trim Reads with Trimmomatic</h3>
+      <form action="/run-trimmomatic" method="post" enctype="multipart/form-data">
+        <div class="drop-zone" id="trimDropZone">
+          <p>Drag & drop your files here, or click to select</p>
+          <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
+        </div>
+        <button type="submit">Upload & Run Trimmomatic</button>
+      </form>
+
+      {% if trim_summary %}
+        <div class="results">
+          <h4>Trimmomatic Results</h4>
+          <pre>{{ trim_summary }}</pre>
+        </div>
+      {% else %}
+        <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
+      {% endif %}
     </div>
-  {% else %}
-    <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
-  {% endif %}
-</div>
 
-<!--trinity-->
-  <div id="trinity" class="page">
-    <h3>3. Transcriptome Assembly (Trinity)</h3>
-    <form action="/run-trinity" method="post" enctype="multipart/form-data">
-      <div class="drop-zone" id="trinityDropZone">
-        <p>Drag & drop your input FASTQ files here, or click to select</p>
-        <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
-      </div>
-      <br />
-      <button type="submit">Upload & Run Trinity</button>
-    </form>
+    <!-- Trinity -->
+    <div id="trinity" class="page module">
+      <h3>3. Transcriptome Assembly (Trinity)</h3>
+      <form action="/run-trinity" method="post" enctype="multipart/form-data">
+        <div class="drop-zone" id="trinityDropZone">
+          <p>Drag & drop your input FASTQ files here, or click to select</p>
+          <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
+        </div>
+        <button type="submit">Upload & Run Trinity</button>
+      </form>
 
-    {% if trinity_summary %}
-      <div class="results">
-        <h4>Trinity Assembly Results</h4>
-        <pre>{{ trinity_summary }}</pre>
-      </div>
-    {% else %}
-      <p>No Trinity assembly has been run yet. Upload files to start assembly.</p>
-    {% endif %}
-  </div>
+      {% if trinity_summary %}
+        <div class="results">
+          <h4>Trinity Assembly Results</h4>
+          <pre>{{ trinity_summary }}</pre>
+        </div>
+      {% else %}
+        <p>No Trinity assembly has been run yet. Upload files to start assembly.</p>
+      {% endif %}
+    </div>
   </div>
 
   <!-- Modal -->
@@ -349,47 +352,33 @@
     let slideIndex = 1;
     document.addEventListener("DOMContentLoaded", () => {
       showSlides(slideIndex);
+      setupDropZone("fastqcDropZone", "dnaFiles");
+      setupDropZone("trimDropZone", "trimFiles");
+      setupDropZone("trinityDropZone", "trinityFiles");
     });
 
-    function plusSlides(n) {
-      showSlides(slideIndex += n);
-    }
-
-    function currentSlide(n) {
-      showSlides(slideIndex = n);
-    }
-
-    function showPage(pageId) {
-      const pages = document.querySelectorAll('.page');
-      pages.forEach(page => page.classList.remove('active'));
-      const activePage = document.getElementById(pageId);
-      if (activePage) {
-        activePage.classList.add('active');
-      }
-    }
+    function plusSlides(n) { showSlides(slideIndex += n); }
+    function currentSlide(n) { showSlides(slideIndex = n); }
 
     function showSlides(n) {
       const slides = document.getElementsByClassName("slide");
       const dots = document.getElementsByClassName("dot");
-      if (slides.length === 0) return;
-
+      if (!slides.length) return;
       if (n > slides.length) slideIndex = 1;
       if (n < 1) slideIndex = slides.length;
-
-      for (let i = 0; i < slides.length; i++) {
-        slides[i].style.display = "none";
-      }
-      for (let i = 0; i < dots.length; i++) {
-        dots[i].className = dots[i].className.replace(" active", "");
-      }
-
+      for (let s of slides) s.style.display = "none";
+      for (let d of dots) d.classList.remove("active");
       slides[slideIndex - 1].style.display = "block";
-      if (dots.length) {
-        dots[slideIndex - 1].className += " active";
-      }
+      dots[slideIndex - 1]?.classList.add("active");
     }
 
-    // Modal logic
+    function showPage(pageId, element) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      element.classList.add('active');
+    }
+
     function openModal(imgElement) {
       const modal = document.getElementById("imgModal");
       const modalImg = document.getElementById("modalImage");
@@ -404,37 +393,25 @@
     }
 
     function setupDropZone(dropZoneId, inputId) {
-  const dropZone = document.getElementById(dropZoneId);
-  const fileInput = document.getElementById(inputId);
-
-  dropZone.addEventListener("click", () => fileInput.click());
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropZone.classList.add("dragover");
-  });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-  dropZone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dropZone.classList.remove("dragover");
-    fileInput.files = e.dataTransfer.files;
-
-    let names = Array.from(fileInput.files).map(f => f.name).join(", ");
-    dropZone.querySelector("p").textContent = `Selected: ${names}`;
-  });
-
-  fileInput.addEventListener("change", () => {
-    let names = Array.from(fileInput.files).map(f => f.name).join(", ");
-    dropZone.querySelector("p").textContent = `Selected: ${names}`;
-  });
-}
-
-// initialize both
-document.addEventListener("DOMContentLoaded", () => {
-  setupDropZone("fastqcDropZone", "dnaFiles");
-  setupDropZone("trimDropZone", "trimFiles");
-});
-
+      const dropZone = document.getElementById(dropZoneId);
+      const fileInput = document.getElementById(inputId);
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", e => {
+        e.preventDefault(); dropZone.classList.add("dragover");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+      dropZone.addEventListener("drop", e => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        fileInput.files = e.dataTransfer.files;
+        const names = [...fileInput.files].map(f => f.name).join(", ");
+        dropZone.querySelector("p").textContent = `Selected: ${names}`;
+      });
+      fileInput.addEventListener("change", () => {
+        const names = [...fileInput.files].map(f => f.name).join(", ");
+        dropZone.querySelector("p").textContent = `Selected: ${names}`;
+      });
+    }
   </script>
 </body>
 </html>
-
