@@ -93,22 +93,113 @@
       margin: 0 auto 50px;
       transition: box-shadow 0.3s ease;
     }
+    /* Trimmomatic Customization Form */
+  .options {
+    text-align: left;
+    background: #f8fcfb;
+    border: 1px solid #d8eae7;
+    border-radius: 12px;
+    padding: 25px 30px;
+    margin: 30px auto;
+    max-width: 600px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
 
-    .module:hover {
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
-    }
+  .options h4 {
+    text-align: center;
+    color: #004d40;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+  }
 
-    .drop-zone {
-      border: 2px dashed #00796b;
-      border-radius: 12px;
-      padding: 35px;
-      background-color: #e0f2f1;
-      color: #004d40;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-bottom: 25px;
-    }
+  .options label {
+    font-weight: 600;
+    color: #00584d;
+  }
+
+  .options select,
+  .options input[type="number"] {
+    margin-top: 6px;
+    margin-bottom: 15px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 0.95rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .options select:focus,
+  .options input[type="number"]:focus {
+    outline: none;
+    border-color: #00796b;
+    box-shadow: 0 0 6px rgba(0, 121, 107, 0.25);
+  }
+
+  .options input[type="checkbox"] {
+    transform: scale(1.2);
+    margin-right: 8px;
+    accent-color: #00796b;
+  }
+
+  .options div {
+    line-height: 1.8;
+  }
+
+  button[type="button"],
+  button[type="submit"] {
+    margin: 10px 8px;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  #cmdPreview {
+    margin-top: 30px;
+    background: #f2f7f6;
+    border: 1px solid #d1e7e2;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  #cmdPreview h4 {
+    color: #004d40;
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+  }
+
+  #cmdText {
+    display: block;
+    padding: 10px;
+    font-family: monospace;
+    background: #eaf6f4;
+    color: #00695c;
+    border-radius: 8px;
+    word-wrap: break-word;
+    text-align: left;
+  }
+
+
+      .module:hover {
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+      }
+
+      .drop-zone {
+        border: 2px dashed #00796b;
+        border-radius: 12px;
+        padding: 35px;
+        background-color: #e0f2f1;
+        color: #004d40;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-bottom: 25px;
+      }
 
     .drop-zone:hover {
       background-color: #d1efea;
@@ -298,17 +389,61 @@
       {% endif %}
     </div>
 
-    <!-- Trimmomatic -->
     <div id="trimmomatic" class="page module">
       <h3>2. Trim Reads with Trimmomatic</h3>
-      <form action="/run-trimmomatic" method="post" enctype="multipart/form-data">
+    
+      <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm">
+        <!-- File Upload -->
         <div class="drop-zone" id="trimDropZone">
-          <p>Drag & drop your files here, or click to select</p>
+          <p>Drag & drop your FASTQ file(s) here, or click to select</p>
           <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
         </div>
+    
+        <!-- Options -->
+        <div class="options" style="text-align:left; max-width:600px; margin:0 auto;">
+          <h4 style="text-align:center; color:#004d40;">Customization Options</h4>
+          <label><b>Mode:</b></label>
+          <select name="mode" id="mode">
+            <option value="SE">Single-End (SE)</option>
+            <option value="PE">Paired-End (PE)</option>
+          </select><br><br>
+    
+          <label><b>Threads:</b></label>
+          <input type="number" id="threads" name="threads" value="4" min="1" max="32" style="width:70px;"> <br><br>
+    
+          <label><b>Phred Encoding:</b></label>
+          <select name="phred" id="phred">
+            <option value="-phred33">-phred33</option>
+            <option value="-phred64">-phred64</option>
+          </select><br><br>
+    
+          <label><b>Trimming Steps:</b></label>
+          <div style="margin-left:15px;">
+            <input type="checkbox" id="sliding" name="steps" value="SLIDINGWINDOW:4:20" checked>
+            <label for="sliding">SLIDINGWINDOW:4:20</label><br>
+    
+            <input type="checkbox" id="minlen" name="steps" value="MINLEN:50" checked>
+            <label for="minlen">MINLEN:50</label><br>
+    
+            <input type="checkbox" id="crop" name="steps" value="CROP:100">
+            <label for="crop">CROP:100</label><br>
+    
+            <input type="checkbox" id="headcrop" name="steps" value="HEADCROP:10">
+            <label for="headcrop">HEADCROP:10</label>
+          </div>
+        </div>
+    
+        <br>
+        <button type="button" onclick="previewTrimmomaticCmd()">Preview Command</button>
         <button type="submit">Upload & Run Trimmomatic</button>
       </form>
-
+    
+      <!-- Command Preview -->
+      <div id="cmdPreview" style="margin-top:25px; text-align:center; background:#f0f0f0; border-radius:10px; padding:15px; display:none;">
+        <h4>Generated Command</h4>
+        <code id="cmdText" style="font-size:0.9rem; color:#004d40;"></code>
+      </div>
+    
       {% if trim_summary %}
         <div class="results">
           <h4>Trimmomatic Results</h4>
@@ -318,6 +453,7 @@
         <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
       {% endif %}
     </div>
+    
 
     <!-- Trinity -->
     <div id="trinity" class="page module">
@@ -412,6 +548,47 @@
         dropZone.querySelector("p").textContent = `Selected: ${names}`;
       });
     }
+
+
+  function previewTrimmomaticCmd() {
+    const mode = document.getElementById('mode').value;
+    const threads = document.getElementById('threads').value;
+    const phred = document.getElementById('phred').value;
+    const steps = Array.from(document.querySelectorAll('input[name="steps"]:checked')).map(c => c.value);
+
+    const base = [
+      "java", "-jar", "trimmomatic.jar",
+      mode, "-threads", threads, phred,
+      "input.fastq", "output_trimmed.fastq"
+    ];
+
+    const cmd = base.concat(steps).join(" ");
+    document.getElementById('cmdText').textContent = cmd;
+    document.getElementById('cmdPreview').style.display = "block";
+  }
+
+  // --- Remember current tab between reloads ---
+  document.addEventListener("DOMContentLoaded", () => {
+    const lastPage = localStorage.getItem("activePage");
+    if (lastPage) {
+      showPage(lastPage, document.querySelector(`.sidebar a[onclick*="${lastPage}"]`));
+    }
+  });
+
+// Modify showPage to store state
+  function showPage(pageId, element) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+
+    const page = document.getElementById(pageId);
+    if (page) page.classList.add('active');
+    if (element) element.classList.add('active');
+
+    // Save the active page in localStorage
+    localStorage.setItem("activePage", pageId);
+  }
+
+
   </script>
 </body>
 </html>

@@ -137,6 +137,11 @@ def view_report():
 # -----------------------------------
 @app.route('/run-trimmomatic', methods=['POST'])
 def run_trimmomatic():
+    mode = request.form.get("mode", "SE")
+    threads = request.form.get("threads", "4")
+    phred = request.form.get("phred", "-phred33")
+    steps = request.form.getlist("steps")  # list of selected trimming steps
+
     # Get all uploaded files from form input name="trimFiles"
     files = request.files.getlist('trimFiles')
     if not files:
@@ -160,10 +165,10 @@ def run_trimmomatic():
 
             cmd = [
                 "java", "-jar", trimmomatic_jar,
-                "SE", "-threads", "4", "-phred33",
-                filepath, output_file,
-                "SLIDINGWINDOW:4:20", "MINLEN:50"
-            ]
+                mode, "-threads", threads, phred,
+                filepath, output_file
+            ] + steps
+
 
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             trim_logs.append(f" {file.filename} trimmed successfully\n{result.stdout}\n")
