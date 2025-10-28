@@ -1,18 +1,17 @@
 FROM ubuntu:22.04
 
-# RUN sed -i 's/^# deb/deb/' /etc/apt/sources.list && apt-get update
-# RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository universe -y
-# build-essential \
 RUN apt-get update && apt-get install -y \
     openjdk-11-jre-headless \
     fastqc \
     wget \
     unzip \
     perl \
+    build-essential \
     samtools \
     jellyfish \
     bowtie2 \
     salmon \
+    bwa \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python and pip
