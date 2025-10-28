@@ -340,6 +340,8 @@
     <a href="#" class="active" onclick="showPage('fastqc', this)">FastQC</a>
     <a href="#" onclick="showPage('trimmomatic', this)">Trimmomatic</a>
     <a href="#" onclick="showPage('trinity', this)">Trinity</a>
+    <a href="#" onclick="showPage('bwt', this)">Burrows–Wheeler</a>
+    <a href="#" onclick="showPage('deseq2', this)">DESeq2</a>
   </div>
 
   <div class="content">
@@ -475,7 +477,49 @@
         <p>No Trinity assembly has been run yet. Upload files to start assembly.</p>
       {% endif %}
     </div>
+    <!-- BURROWS–WHEELER TRANSFORM -->
+    <div id="bwt" class="page module">
+      <h3>4. Sequence Alignment (Burrows–Wheeler Transform)</h3>
+      <form action="/run-bwt" method="post" enctype="multipart/form-data">
+        <div class="drop-zone" id="bwtDropZone">
+          <p>Upload your FASTQ reads and reference genome (FASTA)</p>
+          <input type="file" id="bwtFiles" name="bwtFiles" accept=".fastq,.fasta,.gz" multiple required hidden>
+        </div>
+        <button type="submit">Run BWA Alignment</button>
+      </form>
+
+      {% if bwt_summary %}
+        <div class="results">
+          <h4>BWT Alignment Results</h4>
+          <pre>{{ bwt_summary }}</pre>
+        </div>
+      {% else %}
+        <p>No alignment performed yet. Upload files to run the Burrows–Wheeler Transform alignment.</p>
+      {% endif %}
+    </div>
+
+    <!-- DESEQ2 -->
+    <div id="deseq2" class="page module">
+      <h3>5. Differential Expression Analysis (DESeq2)</h3>
+      <form action="/run-deseq2" method="post" enctype="multipart/form-data">
+        <div class="drop-zone" id="deseqDropZone">
+          <p>Upload count matrix (CSV/TSV) and sample metadata</p>
+          <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple required hidden>
+        </div>
+        <button type="submit">Run DESeq2 Analysis</button>
+      </form>
+
+      {% if deseq_summary %}
+        <div class="results">
+          <h4>DESeq2 Analysis Results</h4>
+          <pre>{{ deseq_summary }}</pre>
+        </div>
+      {% else %}
+        <p>No DESeq2 analysis yet. Upload input files to start differential expression analysis.</p>
+      {% endif %}
+    </div>
   </div>
+
 
   <!-- Modal -->
   <div id="imgModal" class="modal">
