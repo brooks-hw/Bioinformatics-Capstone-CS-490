@@ -1,12 +1,14 @@
 FROM ubuntu:22.04
 
+# RUN sed -i 's/^# deb/deb/' /etc/apt/sources.list && apt-get update
+# RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository universe -y
+# build-essential \
 RUN apt-get update && apt-get install -y \
     openjdk-11-jre-headless \
     fastqc \
     wget \
     unzip \
     perl \
-    build-essential \
     samtools \
     jellyfish \
     bowtie2 \
@@ -35,6 +37,10 @@ RUN wget https://github.com/trinityrnaseq/trinityrnaseq/releases/download/Trinit
     && mv trinityrnaseq-v2.15.1 /opt/tools/trinityrnaseq \
     && rm trinityrnaseq-v2.15.1.FULL.tar.gz
 ENV PATH=$PATH:/opt/tools/trinityrnaseq
+
+# Tell Trinity where dependency binaries are
+ENV TRINITY_HOME=/opt/tools/trinityrnaseq
+ENV PATH=$PATH:/usr/bin:/opt/tools/trinityrnaseq
 
 WORKDIR /workspace
 ENTRYPOINT ["/bin/bash"]

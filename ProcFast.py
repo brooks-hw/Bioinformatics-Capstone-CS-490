@@ -16,8 +16,10 @@ UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'fastqc_output'
 STATIC_IMG_DIR = 'static/report_images'
 TRIM_OUTPUT_FOLDER = 'trimmomatic_output'
+TRINITY_OUTPUT_FOLDER = 'trinity_output'  
 
-for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, STATIC_IMG_DIR, TRIM_OUTPUT_FOLDER]:
+# create folders if they don't exist
+for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, STATIC_IMG_DIR, TRIM_OUTPUT_FOLDER, TRINITY_OUTPUT_FOLDER]:
     os.makedirs(folder, exist_ok=True)
 
 # -----------------------------------
@@ -178,6 +180,70 @@ def run_trimmomatic():
 
     trim_summary = "\n".join(trim_logs)
     return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
+
+# -----------------------------------
+# RUN TRINITY
+# -----------------------------------
+@app.route('/run-trinity', methods=['POST'])
+def run_trinity():
+    # Get uploaded file(s) from the form (HTML input name="trinityFiles")
+    files = request.files.getlist('trinityFiles')
+    if not files:
+        return "No file uploaded!", 400
+
+    # We’ll just use the first uploaded file for this run
+    uploaded_file = files[0]
+
+    # Save it temporarily to the current working directory
+    input_path = uploaded_file.filename
+    uploaded_file.save(input_path)
+
+    # Ensure Trinity output directory exists
+    os.makedirs(TRINITY_OUTPUT_FOLDER, exist_ok=True)
+    output_dir = os.path.join(TRINITY_OUTPUT_FOLDER, "assembly_output")
+
+    # Remove any previous output (optional, keeps directory clean)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Build the Trinity command (default settings)
+    cmd = [
+        "Trinity",
+        "--seqType", "fq",
+        "--single", input_path,
+        "--CPU", "4",
+        "--max_memory", "8G",
+        "--output", output_dir
+    ]
+
+    # Prepare a short summary
+    trinity_summary = f"Running Trinity on {uploaded_file.filename}\n\nCommand:\n{' '.join(cmd)}\n\n"
+
+    try:
+        # Run Trinity
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+        trinity_summary += "Trinity completed successfully.\n\n"
+        trinity_summary += f"Output saved in: {output_dir}\n\n"
+        trinity_summary += f"Trinity Log (first 1000 chars):\n{result.stdout[:1000]}"
+
+    except subprocess.CalledProcessError as e:
+        print("=== TRINITY ERROR ===")
+        print(e.stderr)
+        print("=====================")
+        trinity_summary += f" Trinity failed.\n\nError log (first 1000 chars):\n{e.stderr[:1000]}"
+    finally:
+        # Clean up temporary uploaded FASTQ file
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+    # Render page with results
+    return render_template(
+        "Genelytics.html",
+        trinity_summary=trinity_summary,
+        images=[]
+    )
 
 # -----------------------------------
 # APP LAUNCH
