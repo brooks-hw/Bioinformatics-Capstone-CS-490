@@ -244,6 +244,94 @@ def run_trinity():
         trinity_summary=trinity_summary,
         images=[]
     )
+# -----------------------------------
+# RUN BURROWS–WHEELER (BWA + SAMTOOLS)
+# -----------------------------------
+@app.route('/run-bwt', methods=['POST'])
+def run_bwt():
+    # Get uploaded files from form (HTML input name="bwtFiles")
+    files = request.files.getlist('bwtFiles')
+    if len(files) < 2:
+        return "Please upload both FASTQ reads and reference FASTA file.", 400
+
+    # Separate FASTQ and reference FASTA
+    fastq_file = None
+    reference_file = None
+    for f in files:
+        if f.filename.endswith(('.fa', '.fasta')):
+            reference_file = f
+        elif f.filename.endswith(('.fq', '.fastq', '.gz')):
+            fastq_file = f
+
+    if not fastq_file or not reference_file:
+        return "Missing required FASTQ or reference FASTA file.", 400
+
+    # Save input files locally
+    fastq_path = os.path.join("uploads", fastq_file.filename)
+    ref_path = os.path.join("uploads", reference_file.filename)
+    fastq_file.save(fastq_path)
+    reference_file.save(ref_path)
+
+    # Ensure output directory exists
+    BWT_OUTPUT_FOLDER = "bwt_output"
+    os.makedirs(BWT_OUTPUT_FOLDER, exist_ok=True)
+
+    # Paths for generated files
+    sam_path = os.path.join(BWT_OUTPUT_FOLDER, "alignment.sam")
+    bam_path = os.path.join(BWT_OUTPUT_FOLDER, "alignment.bam")
+    sorted_bam = os.path.join(BWT_OUTPUT_FOLDER, "alignment_sorted.bam")
+
+    # Optional SAMtools flag (add a checkbox named "run_samtools" in HTML)
+    run_samtools = request.form.get("run_samtools") == "on"
+
+    bwt_summary = f"Running Burrows–Wheeler Alignment (BWA MEM)\n\n"
+    bwt_summary += f"Reference: {reference_file.filename}\nReads: {fastq_file.filename}\n\n"
+
+    try:
+        # Step 1: Index the reference
+        index_cmd = ["bwa", "index", ref_path]
+        subprocess.run(index_cmd, check=True, capture_output=True, text=True)
+        bwt_summary += f"Indexed reference with command:\n{' '.join(index_cmd)}\n\n"
+
+        # Step 2: Run alignment
+        align_cmd = ["bwa", "mem", ref_path, fastq_path]
+        with open(sam_path, "w") as sam_out:
+            subprocess.run(align_cmd, check=True, text=True, stdout=sam_out)
+        bwt_summary += f"Alignment completed using command:\n{' '.join(align_cmd)}\n\n"
+
+        # Step 3 (optional): SAMtools conversion + sorting + indexing
+        if run_samtools:
+            bwt_summary += "Running SAMtools steps (convert → sort → index)...\n\n"
+
+            convert_cmd = ["samtools", "view", "-S", "-b", sam_path, "-o", bam_path]
+            subprocess.run(convert_cmd, check=True, capture_output=True, text=True)
+
+            sort_cmd = ["samtools", "sort", bam_path, "-o", sorted_bam]
+            subprocess.run(sort_cmd, check=True, capture_output=True, text=True)
+
+            index_cmd = ["samtools", "index", sorted_bam]
+            subprocess.run(index_cmd, check=True, capture_output=True, text=True)
+
+            bwt_summary += f"Generated sorted and indexed BAM file:\n{sorted_bam}\n\n"
+        else:
+            bwt_summary += "SAMtools skipped (only SAM file generated).\n\n"
+
+        bwt_summary += f"All output files are in: {BWT_OUTPUT_FOLDER}\n"
+
+    except subprocess.CalledProcessError as e:
+        bwt_summary += f"\nError running Burrows–Wheeler or SAMtools:\n{e.stderr[:1000]}"
+    finally:
+        # Cleanup temporary uploaded input files
+        if os.path.exists(fastq_path):
+            os.remove(fastq_path)
+        if os.path.exists(ref_path):
+            os.remove(ref_path)
+
+    return render_template(
+        "Genelytics.html",
+        bwt_summary=bwt_summary,
+        images=[]
+    )
 
 # -----------------------------------
 # APP LAUNCH
