@@ -1,0 +1,5 @@
+Statistics:
+===========
+Trinity Version:      Trinity-v2.15.1
+Compiler:             Intel
+Trinity Parameters:   --seqType fq --single uploads/example_trimmed.fastq --CPU 4 --max_memory 8G --output trinity_output/trinity_assembly

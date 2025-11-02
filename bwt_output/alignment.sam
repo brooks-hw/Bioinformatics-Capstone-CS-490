@@ -1,0 +1,2 @@
+@SQ	SN:TRINITY_DN0_c0_g1_i1	LN:207
+@PG	ID:bwa	PN:bwa	VN:0.7.17-r1188	CL:bwa mem uploads/trinity_output.Trinity.fasta uploads/test-file1_trimmed.fastq

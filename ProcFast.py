@@ -16,11 +16,13 @@ UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'fastqc_output'
 STATIC_IMG_DIR = 'static/report_images'
 TRIM_OUTPUT_FOLDER = 'trimmomatic_output'
-TRINITY_OUTPUT_FOLDER = 'trinity_output'  
+TRINITY_OUTPUT_FOLDER = 'trinity_output' 
+DOWNLOAD_FOLDER = 'static/downloads' 
 
 # create folders if they don't exist
-for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, STATIC_IMG_DIR, TRIM_OUTPUT_FOLDER, TRINITY_OUTPUT_FOLDER]:
+for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, STATIC_IMG_DIR, TRIM_OUTPUT_FOLDER, TRINITY_OUTPUT_FOLDER, DOWNLOAD_FOLDER]:
     os.makedirs(folder, exist_ok=True)
+
 
 # -----------------------------------
 # IMAGE EXTRACTION HELPER
@@ -85,6 +87,7 @@ def run_fastqc():
 
     filepaths = []
     generated_reports = []
+    download_links = []
 
     for file in files:
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
@@ -99,6 +102,11 @@ def run_fastqc():
 
         if os.path.exists(report_path):
             generated_reports.append(report_name)
+        
+            download_url = f"/downloads/{os.path.basename(report_path)}"
+            shutil.copy(report_path, os.path.join("static/downloads", os.path.basename(report_path)))
+            download_links.append((os.path.basename(report_path), download_url))
+
 
     if not generated_reports:
         return "No FastQC reports found!", 500
@@ -110,7 +118,8 @@ def run_fastqc():
         "Genelytics.html",
         images=images,
         fastqc_reports=generated_reports,
-        selected_report=selected_report
+        selected_report=selected_report,
+        download_links=download_links
     )
 
 @app.route('/view-report')
@@ -131,7 +140,7 @@ def view_report():
         "Genelytics.html",
         images=images,
         fastqc_reports=all_reports,
-        selected_report=report_name
+        selected_report=report_name,
     )
 
 # -----------------------------------
@@ -150,17 +159,16 @@ def run_trimmomatic():
         return "No files uploaded!", 400
 
     trim_logs = []
+    download_links = []
 
     for file in files:
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(filepath)
         print(f"Saved file: {filepath}")
 
-        # Define output filename
-        output_file = os.path.join(
-            TRIM_OUTPUT_FOLDER,
-            file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
-        )
+        output_filename = file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
+        output_file = os.path.join(TRIM_OUTPUT_FOLDER, output_filename)
+
 
         try:
             trimmomatic_jar = os.path.join("tools", "trimmomatic-0.39.jar")
@@ -175,11 +183,22 @@ def run_trimmomatic():
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             trim_logs.append(f" {file.filename} trimmed successfully\n{result.stdout}\n")
 
+            
+            download_url = f"/downloads/{output_filename}"
+            shutil.copy(output_file, os.path.join("static/downloads", output_filename))
+            download_links.append((output_filename, download_url))
+
+
         except subprocess.CalledProcessError as e:
             trim_logs.append(f"Error processing {file.filename}:\n{e.stderr}\n")
 
     trim_summary = "\n".join(trim_logs)
-    return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
+    return render_template(
+        "Genelytics.html", 
+        images=[],
+        trim_summary=trim_summary,
+        download_links=download_links
+    )
 
 # -----------------------------------
 # RUN TRINITY
@@ -191,16 +210,21 @@ def run_trinity():
     if not files:
         return "No file uploaded!", 400
 
-    # We’ll just use the first uploaded file for this run
-    uploaded_file = files[0]
+    #find file path of uploaded file
+    saved_paths = []
+    for f in files:
+        filepath = os.path.join(UPLOAD_FOLDER, f.filename)
+        f.save(filepath)
 
-    # Save it temporarily to the current working directory
-    input_path = uploaded_file.filename
-    uploaded_file.save(input_path)
+        if os.path.getsize(filepath) == 0:
+            return "Uploaded FASTQ file is empty. Please provide a valid file.", 400
+
+
+        saved_paths.append(filepath)
 
     # Ensure Trinity output directory exists
     os.makedirs(TRINITY_OUTPUT_FOLDER, exist_ok=True)
-    output_dir = os.path.join(TRINITY_OUTPUT_FOLDER, "assembly_output")
+    output_dir = os.path.join(TRINITY_OUTPUT_FOLDER, "trinity_assembly")
 
     # Remove any previous output (optional, keeps directory clean)
     if os.path.exists(output_dir):
@@ -211,14 +235,16 @@ def run_trinity():
     cmd = [
         "Trinity",
         "--seqType", "fq",
-        "--single", input_path,
+        "--single", ",".join(saved_paths), #multiple files supported //#input_path,
         "--CPU", "4",
         "--max_memory", "8G",
         "--output", output_dir
     ]
 
     # Prepare a short summary
-    trinity_summary = f"Running Trinity on {uploaded_file.filename}\n\nCommand:\n{' '.join(cmd)}\n\n"
+    #trinity_summary = f"Running Trinity on {uploaded_file.filename}\n\nCommand:\n{' '.join(cmd)}\n\n"
+    trinity_summary = f"Running Trinity on {', '.join([f.filename for f in files])}\n\nCommand:\n{' '.join(cmd)}\n\n"
+    download_links = [] #initialize download links
 
     try:
         # Run Trinity
@@ -228,21 +254,38 @@ def run_trinity():
         trinity_summary += f"Output saved in: {output_dir}\n\n"
         trinity_summary += f"Trinity Log (first 1000 chars):\n{result.stdout[:1000]}"
 
+        
+        # Identify main output file (usually 'Trinity.fasta')
+        output_filename = "Trinity.fasta"
+        output_file_path = os.path.join(output_dir, output_filename)
+
+        if os.path.exists(output_file_path):
+            download_url = f"/downloads/{output_filename}"
+            shutil.copy(output_file_path, os.path.join("static/downloads", output_filename))
+            download_links.append((output_filename, download_url))
+
+
     except subprocess.CalledProcessError as e:
         print("=== TRINITY ERROR ===")
         print(e.stderr)
         print("=====================")
         trinity_summary += f" Trinity failed.\n\nError log (first 1000 chars):\n{e.stderr[:1000]}"
-    finally:
-        # Clean up temporary uploaded FASTQ file
-        if os.path.exists(input_path):
-            os.remove(input_path)
+    finally:   
+    # Safe cleanup for all uploaded files
+        for path in saved_paths:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except PermissionError:
+                print(f"Could not delete {path} due to permission issues.")
+
 
     # Render page with results
     return render_template(
         "Genelytics.html",
         trinity_summary=trinity_summary,
-        images=[]
+        images=[],
+        download_links=download_links
     )
 # -----------------------------------
 # RUN BURROWS–WHEELER (BWA + SAMTOOLS)
@@ -287,6 +330,8 @@ def run_bwt():
     bwt_summary = f"Running Burrows–Wheeler Alignment (BWA MEM)\n\n"
     bwt_summary += f"Reference: {reference_file.filename}\nReads: {fastq_file.filename}\n\n"
 
+    download_links = []
+
     try:
         # Step 1: Index the reference
         index_cmd = ["bwa", "index", ref_path]
@@ -298,6 +343,12 @@ def run_bwt():
         with open(sam_path, "w") as sam_out:
             subprocess.run(align_cmd, check=True, text=True, stdout=sam_out)
         bwt_summary += f"Alignment completed using command:\n{' '.join(align_cmd)}\n\n"
+
+        
+        # Add SAM file to download links
+        shutil.copy(sam_path, os.path.join("static/downloads", "alignment.sam"))
+        download_links.append(("alignment.sam", "/downloads/alignment.sam"))
+
 
         # Step 3 (optional): SAMtools conversion + sorting + indexing
         if run_samtools:
@@ -313,6 +364,12 @@ def run_bwt():
             subprocess.run(index_cmd, check=True, capture_output=True, text=True)
 
             bwt_summary += f"Generated sorted and indexed BAM file:\n{sorted_bam}\n\n"
+
+            
+            # Add BAM files to download links
+            shutil.copy(sorted_bam, os.path.join("static/downloads", "alignment_sorted.bam"))
+            download_links.append(("alignment_sorted.bam", "/downloads/alignment_sorted.bam"))
+
         else:
             bwt_summary += "SAMtools skipped (only SAM file generated).\n\n"
 
@@ -320,6 +377,7 @@ def run_bwt():
 
     except subprocess.CalledProcessError as e:
         bwt_summary += f"\nError running Burrows–Wheeler or SAMtools:\n{e.stderr[:1000]}"
+
     finally:
         # Cleanup temporary uploaded input files
         if os.path.exists(fastq_path):
@@ -330,8 +388,13 @@ def run_bwt():
     return render_template(
         "Genelytics.html",
         bwt_summary=bwt_summary,
-        images=[]
+        images=[],
+        download_links=download_links
     )
+
+@app.route('/downloads/<path:filename>')
+def download_file(filename):
+    return send_from_directory('static/downloads', filename, as_attachment=True)
 
 # -----------------------------------
 # APP LAUNCH

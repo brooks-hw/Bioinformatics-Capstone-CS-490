@@ -366,9 +366,9 @@
     <div id="fastqc" class="page active module">
       <h3>1. Upload DNA Data (FastQC)</h3>
       <form action="/run-fastqc" method="post" enctype="multipart/form-data">
-        <div class="drop-zone" id="fastqcDropZone">
-          <p>Drag & drop your FASTQ files here, or click to select</p>
-          <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple required hidden>
+        <div id="fastqcDropZone" ondrop="handleDrop(event, 'fastqc')" ondragover="event.preventDefault()" onclick="document.getElementById('dnaFiles').click()" style="border: 2px dashed #ccc; padding: 20px; text-align: center; background-color: #f8fdf8; border-radius: 8px;">
+        <p>Drag files here or click to upload</p>
+        <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple hidden>
         </div>
         <button type="submit">Upload & Run FastQC</button>
       </form>
@@ -411,9 +411,9 @@
     
       <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm">
         <!-- File Upload -->
-        <div class="drop-zone" id="trimDropZone">
+        <div id="trimDropZone" ondrop="handleDrop(event, 'trimmomatic')" ondragover="event.preventDefault()" onclick="document.getElementById('trimFiles').click()" style="border: 2px dashed #ccc; padding: 20px; text-align: center; background-color: #f8fdf8; border-radius: 8px; margin: 15px 0;">
           <p>Drag & drop your FASTQ file(s) here, or click to select</p>
-          <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
+          <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.fq, .gz" multiple hidden>
         </div>
     
         <!-- Options -->
@@ -476,9 +476,9 @@
     <div id="trinity" class="page module">
       <h3>3. Transcriptome Assembly (Trinity)</h3>
       <form action="/run-trinity" method="post" enctype="multipart/form-data">
-        <div class="drop-zone" id="trinityDropZone">
-          <p>Drag & drop your input FASTQ files here, or click to select</p>
-          <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
+        <div id="trinityDropZone" ondrop="handleDrop(event, 'trinity')" ondragover="event.preventDefault()" onclick="document.getElementById('trinityFiles').click()" style="border: 2px dashed #ccc; padding: 20px; text-align: center;">
+          <p>Drag & drop your FASTQ file(s) here, or click to select</p>
+        <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.fq, .gz" multiple hidden>
         </div>
         <button type="submit">Upload & Run Trinity</button>
       </form>
@@ -498,17 +498,9 @@
 
       <form action="/run-bwt" method="post" enctype="multipart/form-data" id="bwtForm">
         <!-- Multi-file drag & drop -->
-        <div class="drop-zone" id="bwtDropZone" data-accept=".fastq,.fq,.fasta,.fa,.gz">
+        <div class="drop-zone" id="bwtDropZone" data-accept=".fastq,.fq,.fasta,.fa,.gz" ondrop="handleDrop(event, 'bwt')" ondragover="event.preventDefault()" onclick="document.getElementById('trimFiles').click()" style="border: 2px dashed #ccc; padding: 20px; text-align: center;">
           <p>Drag & drop FASTQ (reads) and one FASTA (reference) here, or click to select</p>
-          <input
-            type="file"
-            id="bwtFiles"
-            name="bwtFiles"
-            multiple
-            required
-            hidden
-            accept=".fastq,.fq,.fasta,.fa,.gz"
-          >
+          <input type="file" id="bwtFiles" name="bwtFiles"accept=".fastq,.fq,.fasta,.fa,.gz" multiple hidden>
         </div>
 
         <!-- Live file list -->
@@ -541,7 +533,7 @@
       <form action="/run-deseq2" method="post" enctype="multipart/form-data">
         <div class="drop-zone" id="deseqDropZone">
           <p>Upload count matrix (CSV/TSV) and sample metadata</p>
-          <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple required hidden>
+          <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple hidden>
         </div>
         <button type="submit">Run DESeq2 Analysis</button>
       </form>
@@ -693,8 +685,152 @@
     // Save the active page in localStorage
     localStorage.setItem("activePage", pageId);
   }
-
-
   </script>
+
+  <!-- ========================= -->
+  <!-- Download Cache Section -->
+  <!-- ========================= -->
+
+  <div id="download-cache", class="download-cache" > <!--class="download-cache"-->
+    <h4>Download Cache</h4>
+    <ul id="download-list" draggable="true" data-file-url="{{ url }}"></ul>
+  </div>
+
+  <style>
+.download-cache {
+  position: fixed;
+  right: 20px;
+  top: 100px;
+  width: 240px;
+  background: #f8fdf8; /* Matches light green theme */
+  border: 1px solid #d1e7dd; /* Subtle green border */
+  border-radius: 8px;
+  padding: 15px;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.cache-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.download-cache h4 {
+  margin-top: 0;
+  font-size: 16px;
+  color: #0f5132; /* Dark green heading */
+  border-bottom: 1px solid #d1e7dd;
+  padding-bottom: 8px;
+}
+
+.download-cache ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.download-cache li {
+  margin: 8px 0;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.download-cache li a {
+  color: #198754; /* Bootstrap green */
+  text-decoration: none;
+  font-weight: bold;
+}
+.download-cache li a:hover {
+  text-decoration: underline;
+}
+
+.download-cache li button {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 14px;
+}
+</style>
+
+<script>
+  function handleDrop(event) {
+    event.preventDefault();
+    const url = event.dataTransfer.getData('text/plain');
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], url.split('/').pop());
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        document.querySelector('input[name="dnaFiles"]').files = dataTransfer.files;
+      });
+  }
+
+  function addToDownloadCache(filename, url) {
+    const cache = JSON.parse(localStorage.getItem('downloadCache') || '[]');
+    cache.push({ filename, url });
+    localStorage.setItem('downloadCache', JSON.stringify(cache));
+    renderDownloadCache();
+  }
+
+  function clearCache() {
+    localStorage.removeItem('downloadCache');
+    renderDownloadCache();
+  }
+
+  function removeFileFromCache(filename) {
+    let cache = JSON.parse(localStorage.getItem('downloadCache') || '[]');
+    cache = cache.filter(file => file.filename !== filename);
+    localStorage.setItem('downloadCache', JSON.stringify(cache));
+    renderDownloadCache();
+  }
+
+
+  function renderDownloadCache() {
+    const cache = JSON.parse(localStorage.getItem('downloadCache') || '[]');
+    const list = document.getElementById('download-list');
+    list.innerHTML = '';
+    cache.forEach(file => {
+      const li = document.createElement('li');
+      li.textContent = file.filename;
+      li.draggable = true;
+      li.dataset.url = file.url;
+      li.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', file.url);
+      });
+
+      const link = document.createElement('a');
+      link.href = file.url;
+      link.download = file.filename;
+      link.textContent = ' ⬇';
+      link.style.marginLeft = '10px';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '✖';
+      removeBtn.onclick = () => removeFileFromCache(file.filename);
+
+      li.appendChild(link);
+      li.appendChild(removeBtn);
+      list.appendChild(li);
+    });
+  }
+    document.addEventListener('DOMContentLoaded', renderDownloadCache);
+  </script>
+
+  {% if download_links %}
+  {% for filename, url in download_links %}
+  <script>
+    addToDownloadCache("{{ filename }}", "{{ url }}");
+    </script>
+  {% endfor %}
+  
+  {% endif %}
 </body>
 </html>
