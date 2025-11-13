@@ -23,7 +23,6 @@ DOWNLOAD_FOLDER = 'static/downloads'
 for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, STATIC_IMG_DIR, TRIM_OUTPUT_FOLDER, TRINITY_OUTPUT_FOLDER, DOWNLOAD_FOLDER]:
     os.makedirs(folder, exist_ok=True)
 
-
 # -----------------------------------
 # IMAGE EXTRACTION HELPER
 # -----------------------------------

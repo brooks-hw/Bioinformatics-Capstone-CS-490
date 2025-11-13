@@ -29,3 +29,5 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Working directory
 WORKDIR /workspace
 ENTRYPOINT ["/bin/bash"]
+
+# NEED TO ADD LINE TO INSTALL REQUIREMENTS.TXT INSIDE CONDA ENVIRNOMENT
