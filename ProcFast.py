@@ -142,9 +142,8 @@ def run_trimmomatic():
     mode = request.form.get("mode", "SE")
     threads = request.form.get("threads", "4")
     phred = request.form.get("phred", "-phred33")
-    steps = request.form.getlist("steps")  # list of selected trimming steps
+    steps = request.form.getlist("steps")
 
-    # Get all uploaded files from form input name="trimFiles"
     files = request.files.getlist('trimFiles')
     if not files:
         return "No files uploaded!", 400
@@ -156,11 +155,12 @@ def run_trimmomatic():
         file.save(filepath)
         print(f"Saved file: {filepath}")
 
-        # Define output filename
+        # Define output and log paths
         output_file = os.path.join(
             TRIM_OUTPUT_FOLDER,
             file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
         )
+        trim_log_path = os.path.join(TRIM_OUTPUT_FOLDER, f"{file.filename}_trimlog.txt")
 
         try:
             trimmomatic_jar = os.path.join("tools", "trimmomatic-0.39.jar")
@@ -169,14 +169,39 @@ def run_trimmomatic():
                 "java", "-jar", trimmomatic_jar,
                 mode, "-threads", threads, phred,
                 filepath, output_file
-            ] + steps
+            ] + steps + [f"-trimlog", trim_log_path]
 
-
+            print("Running:", " ".join(cmd))
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            trim_logs.append(f" {file.filename} trimmed successfully\n{result.stdout}\n")
+
+            # Trimmomatic usually writes its summary to STDERR, not STDOUT
+            combined_output = (result.stdout or "") + "\n" + (result.stderr or "")
+
+            summary_line = None
+
+            # Look for a summary line in combined output
+            for line in combined_output.splitlines():
+                if any(x in line for x in ["Input Read", "Input Reads", "Both Surviving", "Surviving:", "Dropped:"]):
+                    summary_line = line.strip()
+                    break
+
+            # If not found, look in the trimlog file as a fallback
+            if not summary_line and os.path.exists(trim_log_path):
+                with open(trim_log_path, "r") as log:
+                    for l in log:
+                        if any(x in l for x in ["Input Read", "Input Reads", "Both Surviving", "Surviving:", "Dropped:"]):
+                            summary_line = l.strip()
+                            break
+
+            # Build clean result message for this file
+            if summary_line:
+                trim_logs.append(f"{file.filename} trimmed successfully.\n{summary_line}\n")
+            else:
+                trim_logs.append(f"{file.filename} trimmed successfully.\nNo trimming summary detected.\n")
 
         except subprocess.CalledProcessError as e:
-            trim_logs.append(f"Error processing {file.filename}:\n{e.stderr}\n")
+            err = e.stderr[:800] if e.stderr else "Unknown error"
+            trim_logs.append(f"Error processing {file.filename}:\n{err}\n")
 
     trim_summary = "\n".join(trim_logs)
     return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
@@ -338,3 +363,4 @@ def run_bwt():
 # -----------------------------------
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
+

@@ -26,6 +26,29 @@
         font-size: 0.9rem;
         border: 1px solid #cfe7e3;
       }
+      .stats-table {
+        margin: 25px auto;
+        border-collapse: collapse;
+        width: 80%;
+        max-width: 700px;
+        background: #ffffff;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .stats-table th {
+        background-color: #00695c;
+        color: white;
+        text-align: left;
+        padding: 10px;
+      }
+      .stats-table td {
+        border-bottom: 1px solid #ddd;
+        padding: 10px;
+      }
+      .stats-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
 
     /* Sidebar */
     .sidebar {
@@ -472,26 +495,26 @@
     </div>
     
 
-    <!-- Trinity -->
-    <div id="trinity" class="page module">
-      <h3>3. Transcriptome Assembly (Trinity)</h3>
-      <form action="/run-trinity" method="post" enctype="multipart/form-data">
-        <div class="drop-zone" id="trinityDropZone">
-          <p>Drag & drop your input FASTQ files here, or click to select</p>
-          <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
-        </div>
-        <button type="submit">Upload & Run Trinity</button>
-      </form>
+   <!-- Trinity -->
+   <div id="trinity" class="page module">
+    <h3>3. Transcriptome Assembly (Trinity)</h3>
+    <form action="/run-trinity" method="post" enctype="multipart/form-data">
+      <div class="drop-zone" id="trinityDropZone">
+        <p>Drag & drop your input FASTQ files here, or click to select</p>
+        <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
+      </div>
+      <button type="submit">Upload & Run Trinity</button>
+    </form>
 
-      {% if trinity_summary %}
-        <div class="results">
-          <h4>Trinity Assembly Results</h4>
-          <pre>{{ trinity_summary }}</pre>
-        </div>
-      {% else %}
-        <p>No Trinity assembly has been run yet. Upload files to start assembly.</p>
-      {% endif %}
-    </div>
+    {% if trinity_summary %}
+      <div class="results">
+        <h4>Trinity Assembly Results</h4>
+        <pre>{{ trinity_summary }}</pre>
+      </div>
+    {% else %}
+      <p>No Trinity assembly has been run yet. Upload files to start assembly.</p>
+    {% endif %}
+  </div>
     <!-- BURROWS–WHEELER TRANSFORM -->
     <div id="bwt" class="page module">
       <h3>4. Sequence Alignment (Burrows–Wheeler)</h3>
