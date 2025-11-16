@@ -388,7 +388,7 @@
     <!-- FastQC -->
     <div id="fastqc" class="page active module">
       <h3>1. Upload DNA Data (FastQC)</h3>
-      <form action="/run-fastqc" method="post" enctype="multipart/form-data">
+      <form action="/run-fastqc" method="post" enctype="multipart/form-data" onsubmit="enableLoading()">
         <div class="drop-zone" id="fastqcDropZone">
           <p>Drag & drop your FASTQ files here, or click to select</p>
           <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple required hidden>
@@ -432,7 +432,7 @@
     <div id="trimmomatic" class="page module">
       <h3>2. Trim Reads with Trimmomatic</h3>
     
-      <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm">
+      <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm" onsubmit="enableLoading()">
         <!-- File Upload -->
         <div class="drop-zone" id="trimDropZone">
           <p>Drag & drop your FASTQ file(s) here, or click to select</p>
@@ -498,7 +498,7 @@
    <!-- Trinity -->
    <div id="trinity" class="page module">
     <h3>3. Transcriptome Assembly (Trinity)</h3>
-    <form action="/run-trinity" method="post" enctype="multipart/form-data">
+    <form action="/run-trinity" method="post" enctype="multipart/form-data" onsubmit="enableLoading()">
       <div class="drop-zone" id="trinityDropZone">
         <p>Drag & drop your input FASTQ files here, or click to select</p>
         <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
@@ -519,7 +519,7 @@
     <div id="bwt" class="page module">
       <h3>4. Sequence Alignment (Burrows–Wheeler)</h3>
 
-      <form action="/run-bwt" method="post" enctype="multipart/form-data" id="bwtForm">
+      <form action="/run-bwt" method="post" enctype="multipart/form-data" id="bwtForm" onsubmit="enableLoading()">
         <!-- Multi-file drag & drop -->
         <div class="drop-zone" id="bwtDropZone" data-accept=".fastq,.fq,.fasta,.fa,.gz">
           <p>Drag & drop FASTQ (reads) and one FASTA (reference) here, or click to select</p>
@@ -561,7 +561,7 @@
     <!-- DESEQ2 -->
     <div id="deseq2" class="page module">
       <h3>5. Differential Expression Analysis (DESeq2)</h3>
-      <form action="/run-deseq2" method="post" enctype="multipart/form-data">
+      <form action="/run-deseq2" method="post" enctype="multipart/form-data" onsubmit="enableLoading()">
         <div class="drop-zone" id="deseqDropZone">
           <p>Upload count matrix (CSV/TSV) and sample metadata</p>
           <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple required hidden>
@@ -612,6 +612,9 @@
       for (let d of dots) d.classList.remove("active");
       slides[slideIndex - 1].style.display = "block";
       dots[slideIndex - 1]?.classList.add("active");
+    }
+    function enableLoading() {
+      document.getElementById("loadingOverlay").style.display = "block";
     }
 
     function showPage(pageId, element) {
@@ -719,5 +722,40 @@
 
 
   </script>
+  <!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>Processing... please wait</p>
+</div>
+
+<style>
+  #loadingOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+    text-align: center;
+    padding-top: 200px;
+    font-size: 1.3rem;
+    color: #004d40;
+  }
+
+  .spinner {
+    border: 6px solid #cfe7e3;
+    border-top: 6px solid #00796b;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: auto;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
 </body>
 </html>
