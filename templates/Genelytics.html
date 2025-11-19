@@ -4,6 +4,67 @@
   <meta charset="UTF-8" />
   <title>DNA Workflow Pipeline</title>
   <style>
+    .trim-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .trim-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 4px;
+    }
+
+    .trim-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #00584d;
+      min-width: 180px;
+    }
+
+    .trim-left input[type="checkbox"] {
+      transform: scale(1.25);
+      accent-color: #00796b;
+    }
+
+    .trim-right {
+      display: flex;
+      align-items: center;
+      gap: 10px 18px;
+      flex-wrap: wrap;
+    }
+
+    .trim-right label {
+      font-size: 0.9rem;
+      color: #004d40;
+    }
+
+    .trim-right input[type="number"] {
+      width: 70px;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      background: #ffffff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .trim-right input[type="number"]:focus {
+      border-color: #00796b;
+      box-shadow: 0 0 4px rgba(0,121,107,0.25);
+    }
+
+    .trim-divider {
+      height: 1px;
+      background: #e1ecea;
+      margin: 2px 0;
+    }
+
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #f7fbfd;
@@ -373,15 +434,8 @@
 </head>
 
 <body>
-  <div class="sidebar">
-    <h2>DNA Tools</h2>
-    <a href="#" class="active" onclick="showPage('fastqc', this)">FastQC</a>
-    <a href="#" onclick="showPage('trimmomatic', this)">Trimmomatic</a>
-    <a href="#" onclick="showPage('trinity', this)">Trinity</a>
-    <a href="#" onclick="showPage('bwt', this)">Burrows–Wheeler</a>
-    <a href="#" onclick="showPage('deseq2', this)">DESeq2</a>
-  </div>
-
+  <div class="sidebar"> <h2>DNA Tools</h2> <a href="#" class="active" onclick="showPage('fastqc', this)">FastQC</a> <a href="#" onclick="showPage('trimmomatic', this)">Trimmomatic</a> <a href="#" onclick="showPage('trinity', this)">Trinity</a> <a href="#" onclick="showPage('bwt', this)">Burrows–Wheeler</a> <a href="#" onclick="showPage('deseq2', this)">DESeq2</a> </div>
+  
   <div class="content">
     <h1>Data Analysis Pipeline</h1>
 
@@ -394,6 +448,24 @@
           <input type="file" id="dnaFiles" name="dnaFiles" accept=".fastq,.gz" multiple required hidden>
         </div>
         <button type="submit">Upload & Run FastQC</button>
+        <button type="button" onclick="
+          showCommandPreview(
+            'FASTQC',
+            'fastqc --outdir fastqc_output ' +
+            [...document.getElementById('dnaFiles').files].map(f => f.name).join(' ')
+          );
+        ">
+          Preview FastQC Command
+        </button>
+        <div id="FASTQC_cmdPreview" 
+            style="margin-top:25px; text-align:center; background:#f0f0f0; border-radius:10px; padding:15px; display:none;">
+          <h4 style="color:#004d40;">Generated Command</h4>
+          <code id="FASTQC_cmdText" style="font-size:0.9rem; color:#004d40;"></code>
+        </div>
+
+
+
+
       </form>
 
       {% if fastqc_reports %}
@@ -410,6 +482,17 @@
       {% endif %}
 
       {% if images %}
+        <script>
+          window.onload = () => {
+            showToast("FastQC Completed Successfully — Output saved in /fastqc_output");
+          };
+        </script>
+        <div id="FASTQC_cmdPreview" 
+            style="margin-top:25px; text-align:center; background:#f0f0f0; border-radius:10px; padding:15px; display:none;">
+          <h4 style="color:#004d40;">Generated Command</h4>
+          <code id="FASTQC_cmdText" style="font-size:0.9rem; color:#004d40;"></code>
+        </div>
+
         <div class="slideshow-container">
           {% for img in images %}
             <div class="slide">
@@ -429,70 +512,184 @@
       {% endif %}
     </div>
 
+    <!-- Trimmomatic -->
     <div id="trimmomatic" class="page module">
       <h3>2. Trim Reads with Trimmomatic</h3>
     
       <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm" onsubmit="enableLoading()">
+        
         <!-- File Upload -->
         <div class="drop-zone" id="trimDropZone">
           <p>Drag & drop your FASTQ file(s) here, or click to select</p>
           <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
         </div>
     
-        <!-- Options -->
+        <!-- Options Panel -->
         <div class="options" style="text-align:left; max-width:600px; margin:0 auto;">
           <h4 style="text-align:center; color:#004d40;">Customization Options</h4>
+    
           <label><b>Mode:</b></label>
           <select name="mode" id="mode">
             <option value="SE">Single-End (SE)</option>
             <option value="PE">Paired-End (PE)</option>
-          </select><br><br>
+          </select>
+          <br><br>
     
           <label><b>Threads:</b></label>
-          <input type="number" id="threads" name="threads" value="4" min="1" max="32" style="width:70px;"> <br><br>
+          <input type="number" id="threads" name="threads" value="4" min="1" max="32" style="width:70px;">
+          <br><br>
     
           <label><b>Phred Encoding:</b></label>
           <select name="phred" id="phred">
             <option value="-phred33">-phred33</option>
             <option value="-phred64">-phred64</option>
-          </select><br><br>
+          </select>
     
-          <label><b>Trimming Steps:</b></label>
-          <div style="margin-left:15px;">
-            <input type="checkbox" id="sliding" name="steps" value="SLIDINGWINDOW:4:20" checked>
-            <label for="sliding">SLIDINGWINDOW:4:20</label><br>
+        </div>
     
-            <input type="checkbox" id="minlen" name="steps" value="MINLEN:50" checked>
-            <label for="minlen">MINLEN:50</label><br>
+        <!-- Sleek Trimming Steps -->
+        <label style="margin-top:25px; display:block;"><b>Trimming Steps:</b></label>
     
-            <input type="checkbox" id="crop" name="steps" value="CROP:100">
-            <label for="crop">CROP:100</label><br>
+        <div class="trim-list">
     
-            <input type="checkbox" id="headcrop" name="steps" value="HEADCROP:10">
-            <label for="headcrop">HEADCROP:10</label>
+          <!-- SLIDINGWINDOW -->
+          <div class="trim-row">
+            <label class="trim-left">
+              <input type="checkbox" id="sliding" checked>
+              <span>SLIDINGWINDOW</span>
+            </label>
+    
+            <div class="trim-right">
+              <label>window size:</label>
+              <input type="number" id="sliding_window" min="1" max="50" value="4">
+    
+              <label>quality:</label>
+              <input type="number" id="sliding_quality" min="3" max="40" value="20">
+            </div>
           </div>
+    
+          <div class="trim-divider"></div>
+    
+          <!-- MINLEN -->
+          <div class="trim-row">
+            <label class="trim-left">
+              <input type="checkbox" id="minlen" checked>
+              <span>MINLEN</span>
+            </label>
+    
+            <div class="trim-right">
+              <label>minimum length:</label>
+              <input type="number" id="minlen_val" min="1" max="300" value="50">
+            </div>
+          </div>
+    
+          <div class="trim-divider"></div>
+    
+          <!-- CROP -->
+          <div class="trim-row">
+            <label class="trim-left">
+              <input type="checkbox" id="crop">
+              <span>CROP</span>
+            </label>
+    
+            <div class="trim-right">
+              <label>max length:</label>
+              <input type="number" id="crop_val" min="1" max="300" value="100">
+            </div>
+          </div>
+    
+          <div class="trim-divider"></div>
+    
+          <!-- HEADCROP -->
+          <div class="trim-row">
+            <label class="trim-left">
+              <input type="checkbox" id="headcrop">
+              <span>HEADCROP</span>
+            </label>
+    
+            <div class="trim-right">
+              <label>trim from start:</label>
+              <input type="number" id="headcrop_val" min="0" max="50" value="10">
+            </div>
+          </div>
+    
         </div>
     
         <br>
-        <button type="button" onclick="previewTrimmomaticCmd()">Preview Command</button>
+    
+        <!-- Buttons -->
         <button type="submit">Upload & Run Trimmomatic</button>
+    
+        <button type="button" onclick="
+          const trimFilesList = [...document.getElementById('trimFiles').files];
+          const mode = document.getElementById('mode').value;
+          const threads = document.getElementById('threads').value;
+          const phred = document.getElementById('phred').value;
+    
+          let steps = [];
+    
+          if (document.getElementById('sliding').checked) {
+            const win = document.getElementById('sliding_window').value;
+            const qual = document.getElementById('sliding_quality').value;
+            steps.push(`SLIDINGWINDOW:${win}:${qual}`);
+          }
+    
+          if (document.getElementById('minlen').checked) {
+            const val = document.getElementById('minlen_val').value;
+            steps.push(`MINLEN:${val}`);
+          }
+    
+          if (document.getElementById('crop').checked) {
+            const val = document.getElementById('crop_val').value;
+            steps.push(`CROP:${val}`);
+          }
+    
+          if (document.getElementById('headcrop').checked) {
+            const val = document.getElementById('headcrop_val').value;
+            steps.push(`HEADCROP:${val}`);
+          }
+    
+          showCommandPreview(
+            'TRIM',
+            'java -jar trimmomatic.jar ' +
+            mode + ' -threads ' + threads + ' ' + phred + ' ' +
+            (trimFilesList[0] ? trimFilesList[0].name : 'input.fastq') + ' ' +
+            'output_trimmed.fastq ' +
+            steps.join(' ')
+          );
+        "
+        style="margin: 10px 8px; padding: 12px 28px; border-radius: 8px; font-weight: 600;">
+          Preview Command
+        </button>
+    
       </form>
     
-      <!-- Command Preview -->
-      <div id="cmdPreview" style="margin-top:25px; text-align:center; background:#f0f0f0; border-radius:10px; padding:15px; display:none;">
-        <h4>Generated Command</h4>
-        <code id="cmdText" style="font-size:0.9rem; color:#004d40;"></code>
+      <!-- Preview Box -->
+      <div id="TRIM_cmdPreview"
+           style="margin-top:25px; text-align:center; background:#f0f0f0;
+                  border-radius:10px; padding:15px; display:none;">
+        <h4 style="color:#004d40;">Generated Command</h4>
+        <code id="TRIM_cmdText"
+              style="font-size:0.9rem; color:#004d40; word-wrap:break-word;">
+        </code>
       </div>
     
       {% if trim_summary %}
-        <div class="results">
-          <h4>Trimmomatic Results</h4>
-          <pre>{{ trim_summary }}</pre>
-        </div>
+      <script>
+        window.onload = () =>
+          showToast('Trimmomatic Completed Successfully — Output saved in /trimmomatic_output');
+      </script>
+    
+      <div class="results">
+        <h4>Trimmomatic Results</h4>
+        <pre>{{ trim_summary }}</pre>
+      </div>
+    
       {% else %}
         <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
       {% endif %}
     </div>
+    
     
 
    <!-- Trinity -->
@@ -504,9 +701,35 @@
         <input type="file" id="trinityFiles" name="trinityFiles" accept=".fastq,.gz" multiple required hidden>
       </div>
       <button type="submit">Upload & Run Trinity</button>
+      <button type="button" onclick="
+        showCommandPreview(
+          'TRINITY',
+          'Trinity --seqType fq --CPU 4 --max_memory 8G --output trinity_output ' +
+          [...document.getElementById('trinityFiles').files].map(f => f.name).join(' ')
+        );
+      " 
+      style="margin: 10px 8px; padding: 12px 28px; border-radius: 8px; font-weight: 600;">
+        Preview Trinity Command
+      </button>
+
+      <div id="TRINITY_cmdPreview"
+          style="margin-top:25px; text-align:center; background:#f0f0f0;
+                  border-radius:10px; padding:15px; display:none;">
+        <h4 style="color:#004d40;">Generated Command</h4>
+        <code id="TRINITY_cmdText"
+              style="font-size:0.9rem; color:#004d40; word-wrap:break-word;">
+        </code>
+      </div>
+
+
     </form>
 
     {% if trinity_summary %}
+      <script>
+        window.onload = () => {
+          showToast("Trinity Completed Successfully — Output saved in /fastqc_output");
+        };
+      </script>
       <div class="results">
         <h4>Trinity Assembly Results</h4>
         <pre>{{ trinity_summary }}</pre>
@@ -545,9 +768,40 @@
 
         <br>
         <button type="submit">Run BWA Alignment</button>
+        <button type="button" onclick="
+        const files = [...document.getElementById('bwtFiles').files];
+        const fasta = files.find(f => f.name.match(/\.fa$|\.fasta$/));
+        const fastq = files.find(f => f.name.match(/\.fq$|\.fastq$|\.gz$/));
+
+        showCommandPreview(
+          'BWA',
+          'bwa mem ' +
+          (fasta ? fasta.name : 'reference.fasta') + ' ' +
+          (fastq ? fastq.name : 'reads.fastq') +
+          ' > alignment.sam'
+        );
+      "
+      style='margin: 10px 8px; padding: 12px 28px; border-radius: 8px; font-weight: 600;'>
+        Preview BWA Command
+      </button>
+
+      <div id="BWA_cmdPreview"
+          style="margin-top:25px; text-align:center; background:#f0f0f0;
+                  border-radius:10px; padding:15px; display:none;">
+        <h4 style="color:#004d40;">Generated Command</h4>
+        <code id="BWA_cmdText"
+              style="font-size:0.9rem; color:#004d40; word-wrap:break-word;">
+        </code>
+      </div>
+
       </form>
 
       {% if bwt_summary %}
+        <script>
+          window.onload = () => {
+            showToast("BWT Completed Successfully — Output saved in /fastqc_output");
+          };
+        </script>
         <div class="results" style="margin-top:20px; text-align:left;">
           <h4>BWT Alignment Results</h4>
           <pre>{{ bwt_summary }}</pre>
@@ -559,26 +813,59 @@
 
 
     <!-- DESEQ2 -->
-    <div id="deseq2" class="page module">
-      <h3>5. Differential Expression Analysis (DESeq2)</h3>
-      <form action="/run-deseq2" method="post" enctype="multipart/form-data" onsubmit="enableLoading()">
-        <div class="drop-zone" id="deseqDropZone">
-          <p>Upload count matrix (CSV/TSV) and sample metadata</p>
-          <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple required hidden>
-        </div>
-        <button type="submit">Run DESeq2 Analysis</button>
-      </form>
+<div id="deseq2" class="page module">
+  <h3>5. Differential Expression Analysis (DESeq2)</h3>
 
-      {% if deseq_summary %}
-        <div class="results">
-          <h4>DESeq2 Analysis Results</h4>
-          <pre>{{ deseq_summary }}</pre>
-        </div>
-      {% else %}
-        <p>No DESeq2 analysis yet. Upload input files to start differential expression analysis.</p>
-      {% endif %}
+  <form action="/run-deseq2" method="post" enctype="multipart/form-data" onsubmit="enableLoading()">
+    <div class="drop-zone" id="deseqDropZone">
+      <p>Upload count matrix (CSV/TSV) and sample metadata</p>
+      <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple required hidden>
     </div>
+
+    <!-- 🔥 Preview Button -->
+    <button type="button" onclick="
+      const deseqFiles = [...document.getElementById('deseqFiles').files];
+
+      showCommandPreview(
+        'DESEQ',
+        'Rscript run_deseq2.R ' +
+        (files[0] ? files[0].name : 'count_matrix.csv') + ' ' +
+        (files[1] ? files[1].name : 'metadata.csv') +
+        ' deseq2_output'
+      );
+    "
+    style='margin: 10px 8px; padding: 12px 28px; border-radius: 8px; font-weight: 600;'>
+      Preview DESeq2 Command
+    </button>
+
+    <button type="submit">Run DESeq2 Analysis</button>
+  </form>
+
+  <!-- 🔥 Trimmomatic-style Command Preview Box -->
+  <div id="DESEQ_cmdPreview"
+       style="margin-top:25px; text-align:center; background:#f0f0f0;
+              border-radius:10px; padding:15px; display:none;">
+    <h4 style="color:#004d40;">Generated Command</h4>
+    <code id="DESEQ_cmdText"
+          style="font-size:0.9rem; color:#004d40; word-wrap:break-word;">
+    </code>
   </div>
+
+  {% if deseq_summary %}
+    <script>
+      window.onload = () =>
+        showToast("DESeq2 Completed Successfully — Output saved in /deseq2_output");
+    </script>
+
+    <div class="results">
+      <h4>DESeq2 Analysis Results</h4>
+      <pre>{{ deseq_summary }}</pre>
+    </div>
+
+  {% else %}
+    <p>No DESeq2 analysis yet. Upload input files to start differential expression analysis.</p>
+  {% endif %}
+</div>
 
 
   <!-- Modal -->
@@ -589,6 +876,17 @@
   </div>
 
   <script>
+   function showCommandPreview(toolId, cmdText) {
+      const box = document.getElementById(toolId + "_cmdPreview");
+      const text = document.getElementById(toolId + "_cmdText");
+
+      text.textContent = cmdText;
+      box.style.display = "block";
+      box.scrollIntoView({ behavior: "smooth" });
+    }
+
+
+
     let slideIndex = 1;
     document.addEventListener("DOMContentLoaded", () => {
       showSlides(slideIndex);
@@ -720,6 +1018,19 @@
     localStorage.setItem("activePage", pageId);
   }
 
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    // Hide after 5 seconds
+    setTimeout(() => {
+      toast.classList.remove("show");
+    }, 5000);
+  }
+
+
+
 
   </script>
   <!-- Loading Overlay -->
@@ -757,5 +1068,34 @@
     100% { transform: rotate(360deg); }
   }
 </style>
+
+  <div id="toast" class="toast"></div>
+
+  <style>
+    .toast {
+      border-left: 5px solid #00796b30; /* soft teal accent, very subtle */
+      position: fixed;
+      top: 25px;
+      right: 25px;
+      background: #f2f2f2;
+      color: #444;
+      padding: 16px 22px;
+      border-radius: 10px;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 9999;
+    }
+  
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+  
+
 </body>
 </html>
