@@ -487,11 +487,6 @@
             showToast("FastQC Completed Successfully — Output saved in /fastqc_output");
           };
         </script>
-        <div id="FASTQC_cmdPreview" 
-            style="margin-top:25px; text-align:center; background:#f0f0f0; border-radius:10px; padding:15px; display:none;">
-          <h4 style="color:#004d40;">Generated Command</h4>
-          <code id="FASTQC_cmdText" style="font-size:0.9rem; color:#004d40;"></code>
-        </div>
 
         <div class="slideshow-container">
           {% for img in images %}
@@ -513,183 +508,185 @@
     </div>
 
     <!-- Trimmomatic -->
-    <div id="trimmomatic" class="page module">
-      <h3>2. Trim Reads with Trimmomatic</h3>
+<div id="trimmomatic" class="page module">
+  <h3>2. Trim Reads with Trimmomatic</h3>
+
+  <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm" onsubmit="enableLoading()">
     
-      <form action="/run-trimmomatic" method="post" enctype="multipart/form-data" id="trimmomaticForm" onsubmit="enableLoading()">
-        
-        <!-- File Upload -->
-        <div class="drop-zone" id="trimDropZone">
-          <p>Drag & drop your FASTQ file(s) here, or click to select</p>
-          <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
-        </div>
-    
-        <!-- Options Panel -->
-        <div class="options" style="text-align:left; max-width:600px; margin:0 auto;">
-          <h4 style="text-align:center; color:#004d40;">Customization Options</h4>
-    
-          <label><b>Mode:</b></label>
-          <select name="mode" id="mode">
-            <option value="SE">Single-End (SE)</option>
-            <option value="PE">Paired-End (PE)</option>
-          </select>
-          <br><br>
-    
-          <label><b>Threads:</b></label>
-          <input type="number" id="threads" name="threads" value="4" min="1" max="32" style="width:70px;">
-          <br><br>
-    
-          <label><b>Phred Encoding:</b></label>
-          <select name="phred" id="phred">
-            <option value="-phred33">-phred33</option>
-            <option value="-phred64">-phred64</option>
-          </select>
-    
-        </div>
-    
-        <!-- Sleek Trimming Steps -->
-        <label style="margin-top:25px; display:block;"><b>Trimming Steps:</b></label>
-    
-        <div class="trim-list">
-    
-          <!-- SLIDINGWINDOW -->
-          <div class="trim-row">
-            <label class="trim-left">
-              <input type="checkbox" id="sliding" checked>
-              <span>SLIDINGWINDOW</span>
-            </label>
-    
-            <div class="trim-right">
-              <label>window size:</label>
-              <input type="number" id="sliding_window" min="1" max="50" value="4">
-    
-              <label>quality:</label>
-              <input type="number" id="sliding_quality" min="3" max="40" value="20">
-            </div>
-          </div>
-    
-          <div class="trim-divider"></div>
-    
-          <!-- MINLEN -->
-          <div class="trim-row">
-            <label class="trim-left">
-              <input type="checkbox" id="minlen" checked>
-              <span>MINLEN</span>
-            </label>
-    
-            <div class="trim-right">
-              <label>minimum length:</label>
-              <input type="number" id="minlen_val" min="1" max="300" value="50">
-            </div>
-          </div>
-    
-          <div class="trim-divider"></div>
-    
-          <!-- CROP -->
-          <div class="trim-row">
-            <label class="trim-left">
-              <input type="checkbox" id="crop">
-              <span>CROP</span>
-            </label>
-    
-            <div class="trim-right">
-              <label>max length:</label>
-              <input type="number" id="crop_val" min="1" max="300" value="100">
-            </div>
-          </div>
-    
-          <div class="trim-divider"></div>
-    
-          <!-- HEADCROP -->
-          <div class="trim-row">
-            <label class="trim-left">
-              <input type="checkbox" id="headcrop">
-              <span>HEADCROP</span>
-            </label>
-    
-            <div class="trim-right">
-              <label>trim from start:</label>
-              <input type="number" id="headcrop_val" min="0" max="50" value="10">
-            </div>
-          </div>
-    
-        </div>
-    
-        <br>
-    
-        <!-- Buttons -->
-        <button type="submit">Upload & Run Trimmomatic</button>
-    
-        <button type="button" onclick="
-          const trimFilesList = [...document.getElementById('trimFiles').files];
-          const mode = document.getElementById('mode').value;
-          const threads = document.getElementById('threads').value;
-          const phred = document.getElementById('phred').value;
-    
-          let steps = [];
-    
-          if (document.getElementById('sliding').checked) {
-            const win = document.getElementById('sliding_window').value;
-            const qual = document.getElementById('sliding_quality').value;
-            steps.push(`SLIDINGWINDOW:${win}:${qual}`);
-          }
-    
-          if (document.getElementById('minlen').checked) {
-            const val = document.getElementById('minlen_val').value;
-            steps.push(`MINLEN:${val}`);
-          }
-    
-          if (document.getElementById('crop').checked) {
-            const val = document.getElementById('crop_val').value;
-            steps.push(`CROP:${val}`);
-          }
-    
-          if (document.getElementById('headcrop').checked) {
-            const val = document.getElementById('headcrop_val').value;
-            steps.push(`HEADCROP:${val}`);
-          }
-    
-          showCommandPreview(
-            'TRIM',
-            'java -jar trimmomatic.jar ' +
-            mode + ' -threads ' + threads + ' ' + phred + ' ' +
-            (trimFilesList[0] ? trimFilesList[0].name : 'input.fastq') + ' ' +
-            'output_trimmed.fastq ' +
-            steps.join(' ')
-          );
-        "
-        style="margin: 10px 8px; padding: 12px 28px; border-radius: 8px; font-weight: 600;">
-          Preview Command
-        </button>
-    
-      </form>
-    
-      <!-- Preview Box -->
-      <div id="TRIM_cmdPreview"
-           style="margin-top:25px; text-align:center; background:#f0f0f0;
-                  border-radius:10px; padding:15px; display:none;">
-        <h4 style="color:#004d40;">Generated Command</h4>
-        <code id="TRIM_cmdText"
-              style="font-size:0.9rem; color:#004d40; word-wrap:break-word;">
-        </code>
-      </div>
-    
-      {% if trim_summary %}
-      <script>
-        window.onload = () =>
-          showToast('Trimmomatic Completed Successfully — Output saved in /trimmomatic_output');
-      </script>
-    
-      <div class="results">
-        <h4>Trimmomatic Results</h4>
-        <pre>{{ trim_summary }}</pre>
-      </div>
-    
-      {% else %}
-        <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
-      {% endif %}
+    <!-- File Upload -->
+    <div class="drop-zone" id="trimDropZone">
+      <p>Drag & drop your FASTQ file(s) here, or click to select</p>
+      <input type="file" id="trimFiles" name="trimFiles" accept=".fastq,.gz" multiple required hidden>
     </div>
-    
+
+    <!-- Options Panel -->
+    <div class="options" style="text-align:left; max-width:600px; margin:0 auto;">
+      <h4 style="text-align:center; color:#004d40;">Customization Options</h4>
+
+      <label><b>Mode:</b></label>
+      <select name="mode" id="mode">
+        <option value="SE">Single-End (SE)</option>
+        <option value="PE">Paired-End (PE)</option>
+      </select>
+      <br><br>
+
+      <label><b>Threads:</b></label>
+      <input type="number" id="threads" name="threads" value="4" min="1" max="32" style="width:70px;">
+      <br><br>
+
+      <label><b>Phred Encoding:</b></label>
+      <select name="phred" id="phred">
+        <option value="-phred33">-phred33</option>
+        <option value="-phred64">-phred64</option>
+      </select>
+
+    </div>
+
+    <!-- Sleek Trimming Steps -->
+    <label style="margin-top:25px; display:block;"><b>Trimming Steps:</b></label>
+
+    <div class="trim-list">
+
+      <!-- SLIDINGWINDOW -->
+      <div class="trim-row">
+        <label class="trim-left">
+          <input type="checkbox" id="sliding" name="sliding" checked>
+          <span>SLIDINGWINDOW</span>
+        </label>
+
+        <div class="trim-right">
+          <label>window size:</label>
+          <input type="number" id="sliding_window" name="sliding_window" min="1" max="50" value="4">
+
+          <label>quality:</label>
+          <input type="number" id="sliding_quality" name="sliding_quality" min="3" max="40" value="20">
+        </div>
+      </div>
+
+      <div class="trim-divider"></div>
+
+      <!-- MINLEN -->
+      <div class="trim-row">
+        <label class="trim-left">
+          <input type="checkbox" id="minlen" name="minlen" checked>
+          <span>MINLEN</span>
+        </label>
+
+        <div class="trim-right">
+          <label>minimum length:</label>
+          <input type="number" id="minlen_val" name="minlen_val" min="1" max="300" value="50">
+        </div>
+      </div>
+
+      <div class="trim-divider"></div>
+
+      <!-- CROP -->
+      <div class="trim-row">
+        <label class="trim-left">
+          <input type="checkbox" id="crop" name="crop">
+          <span>CROP</span>
+        </label>
+
+        <div class="trim-right">
+          <label>max length:</label>
+          <input type="number" id="crop_val" name="crop_val" min="1" max="300" value="100">
+        </div>
+      </div>
+
+      <div class="trim-divider"></div>
+
+      <!-- HEADCROP -->
+      <div class="trim-row">
+        <label class="trim-left">
+          <input type="checkbox" id="headcrop" name="headcrop">
+          <span>HEADCROP</span>
+        </label>
+
+        <div class="trim-right">
+          <label>trim from start:</label>
+          <input type="number" id="headcrop_val" name="headcrop_val" min="0" max="50" value="10">
+        </div>
+      </div>
+
+    </div>
+
+    <br>
+
+    <!-- Buttons -->
+    <button type="submit">Upload & Run Trimmomatic</button>
+
+    <button type="button" onclick="
+      const trimFilesList = [...document.getElementById('trimFiles').files];
+      const mode = document.getElementById('mode').value;
+      const threads = document.getElementById('threads').value;
+      const phred = document.getElementById('phred').value;
+
+      let steps = [];
+
+      if (document.getElementById('sliding').checked) {
+        const win = document.getElementById('sliding_window').value;
+        const qual = document.getElementById('sliding_quality').value;
+        steps.push(`SLIDINGWINDOW:${win}:${qual}`);
+      }
+
+      if (document.getElementById('minlen').checked) {
+        const val = document.getElementById('minlen_val').value;
+        steps.push(`MINLEN:${val}`);
+      }
+
+      if (document.getElementById('crop').checked) {
+        const val = document.getElementById('crop_val').value;
+        steps.push(`CROP:${val}`);
+      }
+
+      if (document.getElementById('headcrop').checked) {
+        const val = document.getElementById('headcrop_val').value;
+        steps.push(`HEADCROP:${val}`);
+      }
+
+      showCommandPreview(
+        'TRIM',
+        'java -jar trimmomatic.jar ' +
+        mode + ' -threads ' + threads + ' ' + phred + ' ' +
+        (trimFilesList[0] ? trimFilesList[0].name : 'input.fastq') + ' ' +
+        'output_trimmed.fastq ' +
+        steps.join(' ')
+      );
+    "
+    style="margin: 10px 8px; padding: 12px 28px; border-radius: 8px; font-weight: 600;">
+      Preview Command
+    </button>
+
+  </form>
+
+  <!-- Preview Box -->
+  <div id="TRIM_cmdPreview"
+       style="margin-top:25px; text-align:center; background:#f0f0f0;
+              border-radius:10px; padding:15px; display:none;">
+    <h4 style="color:#004d40;">Generated Command</h4>
+    <code id="TRIM_cmdText"
+          style="font-size:0.9rem; color:#004d40; word-wrap:break-word;">
+    </code>
+  </div>
+
+  {% if trim_summary %}
+  <script>
+    window.onload = () =>
+      showToast('Trimmomatic Completed Successfully — Output saved in /trimmomatic_output');
+  </script>
+  <div class="tool-complete">
+    Trimmomatic completed successfully.
+  </div>
+  <div class="results">
+    <h4>Trimmomatic Results</h4>
+    <pre>{{ trim_summary }}</pre>
+  </div>
+
+  {% else %}
+    <p>No trimming done yet. Upload a file to run Trimmomatic.</p>
+  {% endif %}
+</div>
+
     
 
    <!-- Trinity -->
@@ -725,11 +722,20 @@
     </form>
 
     {% if trinity_summary %}
-      <script>
-        window.onload = () => {
-          showToast("Trinity Completed Successfully — Output saved in /fastqc_output");
-        };
-      </script>
+      {% if trinity_success %}
+        <script>
+          window.onload = () => {
+            showToast("Trinity Completed Successfully — Output saved in /trinity_output");
+          };
+        </script>
+      {% else %}
+        <script>
+          window.onload = () => {
+            showToast("Trinity Failed — Check the output section for details");
+          };
+        </script>
+      {% endif %}
+  
       <div class="results">
         <h4>Trinity Assembly Results</h4>
         <pre>{{ trinity_summary }}</pre>
@@ -821,16 +827,15 @@
       <p>Upload count matrix (CSV/TSV) and sample metadata</p>
       <input type="file" id="deseqFiles" name="deseqFiles" accept=".csv,.tsv" multiple required hidden>
     </div>
-
-    <!-- 🔥 Preview Button -->
+    <button type="submit">Run DESeq2 Analysis</button>
     <button type="button" onclick="
       const deseqFiles = [...document.getElementById('deseqFiles').files];
 
       showCommandPreview(
         'DESEQ',
         'Rscript run_deseq2.R ' +
-        (files[0] ? files[0].name : 'count_matrix.csv') + ' ' +
-        (files[1] ? files[1].name : 'metadata.csv') +
+        (deseqFiles[0] ? deseqFiles[0].name : 'count_matrix.csv') + ' ' +
+        (deseqFiles[1] ? deseqFiles[1].name : 'metadata.csv') +
         ' deseq2_output'
       );
     "
@@ -838,10 +843,8 @@
       Preview DESeq2 Command
     </button>
 
-    <button type="submit">Run DESeq2 Analysis</button>
   </form>
 
-  <!-- 🔥 Trimmomatic-style Command Preview Box -->
   <div id="DESEQ_cmdPreview"
        style="margin-top:25px; text-align:center; background:#f0f0f0;
               border-radius:10px; padding:15px; display:none;">
@@ -880,10 +883,18 @@
       const box = document.getElementById(toolId + "_cmdPreview");
       const text = document.getElementById(toolId + "_cmdText");
 
+      // If already visible → hide it
+      if (box.style.display === "block") {
+        box.style.display = "none";
+        return;
+      }
+
+      // If hidden → show it
       text.textContent = cmdText;
       box.style.display = "block";
       box.scrollIntoView({ behavior: "smooth" });
     }
+
 
 
 
@@ -1040,6 +1051,18 @@
 </div>
 
 <style>
+  .tool-complete {
+    margin-top: 25px;
+    padding: 16px;
+    border-radius: 10px;
+    background: #eef2f5;
+    border: 1px solid #d0d7df;
+    font-size: 1.05rem;
+    text-align: center;
+    color: #2a3b47;
+  }
+
+
   #loadingOverlay {
     display: none;
     position: fixed;

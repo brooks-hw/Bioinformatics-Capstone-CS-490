@@ -142,7 +142,24 @@ def run_trimmomatic():
     mode = request.form.get("mode", "SE")
     threads = request.form.get("threads", "4")
     phred = request.form.get("phred", "-phred33")
-    steps = request.form.getlist("steps")
+    steps = []
+
+    if request.form.get("sliding") == "on":
+        win = request.form.get("sliding_window")
+        qual = request.form.get("sliding_quality")
+        steps.append(f"SLIDINGWINDOW:{win}:{qual}")
+
+    if request.form.get("minlen") == "on":
+        val = request.form.get("minlen_val")
+        steps.append(f"MINLEN:{val}")
+
+    if request.form.get("crop") == "on":
+        val = request.form.get("crop_val")
+        steps.append(f"CROP:{val}")
+
+    if request.form.get("headcrop") == "on":
+        val = request.form.get("headcrop_val")
+        steps.append(f"HEADCROP:{val}")
 
     files = request.files.getlist('trimFiles')
     if not files:
@@ -220,12 +237,11 @@ def run_trinity():
     uploaded_file = files[0]
 
     # Save it temporarily to the current working directory
-    input_path = uploaded_file.filename
+    input_path = os.path.join(UPLOAD_FOLDER, uploaded_file.filename)
     uploaded_file.save(input_path)
 
-    # Ensure Trinity output directory exists
-    os.makedirs(TRINITY_OUTPUT_FOLDER, exist_ok=True)
-    output_dir = os.path.join(TRINITY_OUTPUT_FOLDER, "assembly_output")
+    output_dir = TRINITY_OUTPUT_FOLDER
+    os.makedirs(output_dir, exist_ok=True)
 
     # Remove any previous output (optional, keeps directory clean)
     if os.path.exists(output_dir):
@@ -246,29 +262,32 @@ def run_trinity():
     trinity_summary = f"Running Trinity on {uploaded_file.filename}\n\nCommand:\n{' '.join(cmd)}\n\n"
 
     try:
-        # Run Trinity
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        success = True
 
         trinity_summary += "Trinity completed successfully.\n\n"
         trinity_summary += f"Output saved in: {output_dir}\n\n"
         trinity_summary += f"Trinity Log (first 1000 chars):\n{result.stdout[:1000]}"
 
     except subprocess.CalledProcessError as e:
-        print("=== TRINITY ERROR ===")
-        print(e.stderr)
-        print("=====================")
+        success = False
+
         trinity_summary += f" Trinity failed.\n\nError log (first 1000 chars):\n{e.stderr[:1000]}"
+
     finally:
         # Clean up temporary uploaded FASTQ file
-        if os.path.exists(input_path):
-            os.remove(input_path)
+        #if os.path.exists(input_path):
+        #    os.remove(input_path)
+        pass
 
     # Render page with results
     return render_template(
         "Genelytics.html",
         trinity_summary=trinity_summary,
+        trinity_success=success,
         images=[]
     )
+
 # -----------------------------------
 # RUN BURROWS–WHEELER (BWA + SAMTOOLS)
 # -----------------------------------
@@ -346,11 +365,12 @@ def run_bwt():
     except subprocess.CalledProcessError as e:
         bwt_summary += f"\nError running Burrows–Wheeler or SAMtools:\n{e.stderr[:1000]}"
     finally:
+        pass
         # Cleanup temporary uploaded input files
-        if os.path.exists(fastq_path):
-            os.remove(fastq_path)
-        if os.path.exists(ref_path):
-            os.remove(ref_path)
+        #if os.path.exists(fastq_path):
+        #    os.remove(fastq_path)
+        #if os.path.exists(ref_path):
+        #    os.remove(ref_path)
 
     return render_template(
         "Genelytics.html",
@@ -363,4 +383,3 @@ def run_bwt():
 # -----------------------------------
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
-
