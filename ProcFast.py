@@ -378,6 +378,68 @@ def run_bwt():
         images=[]
     )
 
+
+# -----------------------------------
+# RUN DESEQ2 Differential Expression
+# -----------------------------------
+@app.route('/run-deseq2', methods=['POST'])
+def run_deseq2():
+
+    # Input files selected by <input type="file" name="deseqFiles">
+    files = request.files.getlist('deseqFiles')
+    if len(files) < 2:
+        return "Upload count_matrix.csv AND conditions.csv", 400
+
+    # Separate files by extension
+    count_matrix = None
+    conditions = None
+    for f in files:
+        if "count" in f.filename.lower():
+            count_matrix = f
+        elif "condition" in f.filename.lower() or "meta" in f.filename.lower():
+            conditions = f
+
+    if not count_matrix or not conditions:
+        return "Files not recognized — name them as *count* and *condition*", 400
+
+    # Save uploaded files
+    os.makedirs("deseq2_input", exist_ok=True)
+    count_path = os.path.join("deseq2_input", count_matrix.filename)
+    cond_path = os.path.join("deseq2_input", conditions.filename)
+    count_matrix.save(count_path)
+    conditions.save(cond_path)
+
+    # Output directory
+    outdir = "deseq2_output"
+    if os.path.exists(outdir):
+        shutil.rmtree(outdir)
+    os.makedirs(outdir)
+
+    # Call DESeq2 through Rscript
+    deseq_script = "deseq_run.R"  
+    cmd = ["Rscript", deseq_script, count_path, cond_path, outdir]
+
+    deseq_summary = f"Running DESeq2\nCommand:\n{' '.join(cmd)}\n\n"
+
+    try:
+        result = subprocess.run(cmd, text=True, capture_output=True, check=True)
+        deseq_summary += "DESeq2 completed successfully!\n\n"
+        deseq_summary += "Results saved in deseq2_output/\n\n"
+        deseq_summary += "R Log (first 1000 chars):\n" + result.stdout[:1000]
+
+    except subprocess.CalledProcessError as e:
+        deseq_summary += "DESeq2 FAILED ❌\n\n"
+        deseq_summary += f"Return code: {e.returncode}\n\n"
+        deseq_summary += "STDOUT:\n"
+        deseq_summary += (e.stdout or "") + "\n\n"
+        deseq_summary += "STDERR:\n"
+        deseq_summary += (e.stderr or "")
+
+
+    return render_template("Genelytics.html", deseq_summary=deseq_summary, images=[])
+
+
+
 # -----------------------------------
 # APP LAUNCH
 # -----------------------------------
