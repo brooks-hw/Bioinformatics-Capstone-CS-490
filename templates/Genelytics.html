@@ -346,7 +346,173 @@
       color: #bbb;
     }
 
+
   </style>
+
+  
+<!-- === Help Button Styles (Online Manuals) === -->
+<style>
+  :root {
+    --help-green: #116530;     /* dark green */
+    --help-green-hover: #0d4d26;
+    --help-text: #ffffff;
+    --help-shadow: rgba(0,0,0,0.2);
+  }
+  .help-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  .help-btn {
+    background: var(--help-green);
+    color: var(--help-text);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px var(--help-shadow);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .help-btn:hover,
+  .help-btn:focus { background: var(--help-green-hover); outline: none; }
+
+  .help-caret {
+    border: solid var(--help-text);
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transform: rotate(45deg);
+    transition: transform 160ms ease;
+  }
+  .help-btn[aria-expanded="true"] .help-caret { transform: rotate(-135deg); }
+
+  .help-menu {
+    position: absolute;
+    right: 0;
+    margin-top: 8px;
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    min-width: 280px;
+    box-shadow: 0 8px 18px var(--help-shadow);
+    padding: 8px 0;
+    display: none; /* hidden by default */
+  }
+  .help-menu[data-open="true"] { display: block; }
+
+  .help-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    padding: 10px 14px;
+    color: #222;
+    text-decoration: none;
+    line-height: 1.35;
+    align-items: center;
+  }
+  .help-item:hover, .help-item:focus { background: #f5f7f5; outline: none; }
+  .help-item .tag {
+    font-size: 12px;
+    font-weight: 700;
+    color: #116530;
+    background: #eaf4ee;
+    border-radius: 6px;
+    padding: 2px 6px;
+  }
+  .help-item small { color: #666; }
+  @media (max-width: 480px) {
+    .help-container { top: 10px; right: 10px; }
+    .help-menu { min-width: 240px; }
+  }
+</style>
+
+<!-- === Help Button + Menu === -->
+<div class="help-container">
+  <button class="help-btn" id="helpBtn" aria-haspopup="true" aria-expanded="false" aria-controls="helpMenu">
+    Help
+    <span class="help-caret" aria-hidden="true"></span>
+  </button>
+
+  <div class="help-menu" id="helpMenu" role="menu" aria-label="Tool manuals"></div>
+</div>
+
+<!-- === online manual URLs & toggle === -->
+<script>
+  (function () {
+    // if we need to change or add a URL here, menu updates automatically.
+    const MANUALS = [
+      {
+        name: "FastQC Manual",
+        tag: "QC",
+        href: "https://mugenomicscore.missouri.edu/PDF/FastQC_Manual.pdf"
+      },
+      {
+        name: "Trimmomatic Manual (PDF)",
+        tag: "Trim",
+        href: "http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf"
+      },
+      {
+        name: "Trinity Documentation",
+        tag: "Assembly",
+        href: "https://github.com/trinityrnaseq/trinityrnaseq/wiki"
+      },
+      {
+        name: "BWA Manual (BWA-MEM)",
+        tag: "Align",
+        href: "https://bio-bwa.sourceforge.net/bwa.shtml"
+      },
+      {
+        name: "DESeq2 Manual / Vignettes",
+        tag: "DE",
+        href: "https://bioc.r-universe.dev/DESeq2/doc/manual.html"
+      }
+    ];
+
+    const btn = document.getElementById('helpBtn');
+    const menu = document.getElementById('helpMenu');
+
+    // Build the menu items dynamically
+    MANUALS.forEach(m => {
+      const a = document.createElement('a');
+      a.className = 'help-item';
+      a.setAttribute('role', 'menuitem');
+      a.setAttribute('href', m.href);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener');
+      a.innerHTML = `
+        <strong>${m.name}</strong>
+        <small>Opens documentation site</small>
+        <span class="tag">${m.tag}</span>
+      `;
+      menu.appendChild(a);
+    });
+
+    function setOpen(open) {
+      btn.setAttribute('aria-expanded', String(open));
+      menu.setAttribute('data-open', String(open));
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = btn.getAttribute('aria-expanded') === 'true';
+      setOpen(!isOpen);
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', () => setOpen(false));
+
+    // Keyboard accessibility
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'ArrowDown') setOpen(true);
+    });
+  })();
+</script>
 </head>
 
 <body>
@@ -693,8 +859,7 @@
     // Save the active page in localStorage
     localStorage.setItem("activePage", pageId);
   }
-
-
   </script>
+
 </body>
 </html>
