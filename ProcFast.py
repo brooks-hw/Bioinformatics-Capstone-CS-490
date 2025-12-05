@@ -142,9 +142,25 @@ def run_trimmomatic():
     mode = request.form.get("mode", "SE")
     threads = request.form.get("threads", "4")
     phred = request.form.get("phred", "-phred33")
-    steps = request.form.getlist("steps")  # list of selected trimming steps
+    steps = []
 
-    # Get all uploaded files from form input name="trimFiles"
+    if request.form.get("sliding") == "on":
+        win = request.form.get("sliding_window")
+        qual = request.form.get("sliding_quality")
+        steps.append(f"SLIDINGWINDOW:{win}:{qual}")
+
+    if request.form.get("minlen") == "on":
+        val = request.form.get("minlen_val")
+        steps.append(f"MINLEN:{val}")
+
+    if request.form.get("crop") == "on":
+        val = request.form.get("crop_val")
+        steps.append(f"CROP:{val}")
+
+    if request.form.get("headcrop") == "on":
+        val = request.form.get("headcrop_val")
+        steps.append(f"HEADCROP:{val}")
+
     files = request.files.getlist('trimFiles')
     if not files:
         return "No files uploaded!", 400
@@ -156,11 +172,12 @@ def run_trimmomatic():
         file.save(filepath)
         print(f"Saved file: {filepath}")
 
-        # Define output filename
+        # Define output and log paths
         output_file = os.path.join(
             TRIM_OUTPUT_FOLDER,
             file.filename.replace(".fastq", "_trimmed.fastq").replace(".gz", "_trimmed.fastq.gz")
         )
+        trim_log_path = os.path.join(TRIM_OUTPUT_FOLDER, f"{file.filename}_trimlog.txt")
 
         try:
             trimmomatic_jar = os.path.join("tools", "trimmomatic-0.39.jar")
@@ -169,14 +186,39 @@ def run_trimmomatic():
                 "java", "-jar", trimmomatic_jar,
                 mode, "-threads", threads, phred,
                 filepath, output_file
-            ] + steps
+            ] + steps + [f"-trimlog", trim_log_path]
 
-
+            print("Running:", " ".join(cmd))
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            trim_logs.append(f" {file.filename} trimmed successfully\n{result.stdout}\n")
+
+            # Trimmomatic usually writes its summary to STDERR, not STDOUT
+            combined_output = (result.stdout or "") + "\n" + (result.stderr or "")
+
+            summary_line = None
+
+            # Look for a summary line in combined output
+            for line in combined_output.splitlines():
+                if any(x in line for x in ["Input Read", "Input Reads", "Both Surviving", "Surviving:", "Dropped:"]):
+                    summary_line = line.strip()
+                    break
+
+            # If not found, look in the trimlog file as a fallback
+            if not summary_line and os.path.exists(trim_log_path):
+                with open(trim_log_path, "r") as log:
+                    for l in log:
+                        if any(x in l for x in ["Input Read", "Input Reads", "Both Surviving", "Surviving:", "Dropped:"]):
+                            summary_line = l.strip()
+                            break
+
+            # Build clean result message for this file
+            if summary_line:
+                trim_logs.append(f"{file.filename} trimmed successfully.\n{summary_line}\n")
+            else:
+                trim_logs.append(f"{file.filename} trimmed successfully.\nNo trimming summary detected.\n")
 
         except subprocess.CalledProcessError as e:
-            trim_logs.append(f"Error processing {file.filename}:\n{e.stderr}\n")
+            err = e.stderr[:800] if e.stderr else "Unknown error"
+            trim_logs.append(f"Error processing {file.filename}:\n{err}\n")
 
     trim_summary = "\n".join(trim_logs)
     return render_template("Genelytics.html", images=[], trim_summary=trim_summary)
@@ -195,12 +237,11 @@ def run_trinity():
     uploaded_file = files[0]
 
     # Save it temporarily to the current working directory
-    input_path = uploaded_file.filename
+    input_path = os.path.join(UPLOAD_FOLDER, uploaded_file.filename)
     uploaded_file.save(input_path)
 
-    # Ensure Trinity output directory exists
-    os.makedirs(TRINITY_OUTPUT_FOLDER, exist_ok=True)
-    output_dir = os.path.join(TRINITY_OUTPUT_FOLDER, "assembly_output")
+    output_dir = TRINITY_OUTPUT_FOLDER
+    os.makedirs(output_dir, exist_ok=True)
 
     # Remove any previous output (optional, keeps directory clean)
     if os.path.exists(output_dir):
@@ -221,29 +262,32 @@ def run_trinity():
     trinity_summary = f"Running Trinity on {uploaded_file.filename}\n\nCommand:\n{' '.join(cmd)}\n\n"
 
     try:
-        # Run Trinity
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        success = True
 
         trinity_summary += "Trinity completed successfully.\n\n"
         trinity_summary += f"Output saved in: {output_dir}\n\n"
         trinity_summary += f"Trinity Log (first 1000 chars):\n{result.stdout[:1000]}"
 
     except subprocess.CalledProcessError as e:
-        print("=== TRINITY ERROR ===")
-        print(e.stderr)
-        print("=====================")
+        success = False
+
         trinity_summary += f" Trinity failed.\n\nError log (first 1000 chars):\n{e.stderr[:1000]}"
+
     finally:
         # Clean up temporary uploaded FASTQ file
-        if os.path.exists(input_path):
-            os.remove(input_path)
+        #if os.path.exists(input_path):
+        #    os.remove(input_path)
+        pass
 
     # Render page with results
     return render_template(
         "Genelytics.html",
         trinity_summary=trinity_summary,
+        trinity_success=success,
         images=[]
     )
+
 # -----------------------------------
 # RUN BURROWS–WHEELER (BWA + SAMTOOLS)
 # -----------------------------------
@@ -321,17 +365,80 @@ def run_bwt():
     except subprocess.CalledProcessError as e:
         bwt_summary += f"\nError running Burrows–Wheeler or SAMtools:\n{e.stderr[:1000]}"
     finally:
+        pass
         # Cleanup temporary uploaded input files
-        if os.path.exists(fastq_path):
-            os.remove(fastq_path)
-        if os.path.exists(ref_path):
-            os.remove(ref_path)
+        #if os.path.exists(fastq_path):
+        #    os.remove(fastq_path)
+        #if os.path.exists(ref_path):
+        #    os.remove(ref_path)
 
     return render_template(
         "Genelytics.html",
         bwt_summary=bwt_summary,
         images=[]
     )
+
+
+# -----------------------------------
+# RUN DESEQ2 Differential Expression
+# -----------------------------------
+@app.route('/run-deseq2', methods=['POST'])
+def run_deseq2():
+
+    # Input files selected by <input type="file" name="deseqFiles">
+    files = request.files.getlist('deseqFiles')
+    if len(files) < 2:
+        return "Upload count_matrix.csv AND conditions.csv", 400
+
+    # Separate files by extension
+    count_matrix = None
+    conditions = None
+    for f in files:
+        if "count" in f.filename.lower():
+            count_matrix = f
+        elif "condition" in f.filename.lower() or "meta" in f.filename.lower():
+            conditions = f
+
+    if not count_matrix or not conditions:
+        return "Files not recognized — name them as *count* and *condition*", 400
+
+    # Save uploaded files
+    os.makedirs("deseq2_input", exist_ok=True)
+    count_path = os.path.join("deseq2_input", count_matrix.filename)
+    cond_path = os.path.join("deseq2_input", conditions.filename)
+    count_matrix.save(count_path)
+    conditions.save(cond_path)
+
+    # Output directory
+    outdir = "deseq2_output"
+    if os.path.exists(outdir):
+        shutil.rmtree(outdir)
+    os.makedirs(outdir)
+
+    # Call DESeq2 through Rscript
+    deseq_script = "deseq_run.R"  
+    cmd = ["Rscript", deseq_script, count_path, cond_path, outdir]
+
+    deseq_summary = f"Running DESeq2\nCommand:\n{' '.join(cmd)}\n\n"
+
+    try:
+        result = subprocess.run(cmd, text=True, capture_output=True, check=True)
+        deseq_summary += "DESeq2 completed successfully!\n\n"
+        deseq_summary += "Results saved in deseq2_output/\n\n"
+        deseq_summary += "R Log (first 1000 chars):\n" + result.stdout[:1000]
+
+    except subprocess.CalledProcessError as e:
+        deseq_summary += "DESeq2 FAILED ❌\n\n"
+        deseq_summary += f"Return code: {e.returncode}\n\n"
+        deseq_summary += "STDOUT:\n"
+        deseq_summary += (e.stdout or "") + "\n\n"
+        deseq_summary += "STDERR:\n"
+        deseq_summary += (e.stderr or "")
+
+
+    return render_template("Genelytics.html", deseq_summary=deseq_summary, images=[])
+
+
 
 # -----------------------------------
 # APP LAUNCH
