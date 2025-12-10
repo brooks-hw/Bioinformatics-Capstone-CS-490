@@ -1,0 +1,24 @@
+name: genelytics
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - fastqc
+  - trimmomatic
+  - trinity=2.15.1
+  - jellyfish
+  - bowtie2
+  - bwa
+  - samtools
+  - salmon
+  - openjdk
+  - perl
+  - pip
+  - pip:
+      - flask
+      - pillow
+      - beautifulsoup4
+      - biopython
