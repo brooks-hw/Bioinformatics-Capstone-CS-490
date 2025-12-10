@@ -428,7 +428,7 @@ def run_deseq2():
         deseq_summary += "R Log (first 1000 chars):\n" + result.stdout[:1000]
 
     except subprocess.CalledProcessError as e:
-        deseq_summary += "DESeq2 FAILED ❌\n\n"
+        deseq_summary += "DESeq2 FAILED \n\n"
         deseq_summary += f"Return code: {e.returncode}\n\n"
         deseq_summary += "STDOUT:\n"
         deseq_summary += (e.stdout or "") + "\n\n"
@@ -444,4 +444,12 @@ def run_deseq2():
 # APP LAUNCH
 # -----------------------------------
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    import sys
+
+    PORT = 5000
+    if "--port" in sys.argv:
+        try:
+            PORT = int(sys.argv[sys.argv.index("--port") + 1])
+        except:
+            pass
+    app.run(host="0.0.0.0", port=PORT, debug=True)
